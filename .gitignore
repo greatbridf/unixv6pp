@@ -3,6 +3,7 @@ build
 .cache
 .codex
 .vscode
+.vim/
 
 /tools/fs-editor
 *.o
