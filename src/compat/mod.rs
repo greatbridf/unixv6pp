@@ -1,5 +1,3 @@
-use core::ptr::NonNull;
-
 use crate::{fs::InodeRefCompat, user::Userspace};
 
 extern "C" {
