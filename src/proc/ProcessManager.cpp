@@ -8,7 +8,6 @@
 #include "Regs.h"
 #include "New.h"
 #include "MemoryDescriptor.h"
-#include "ELF.h"
 
 unsigned int ProcessManager::m_NextUniquePid = 0;
 
@@ -514,36 +513,28 @@ void ProcessManager::Exec()
 	}
 
         struct pe_parser* parser = PEParser_new();
-	ELF::Parser elfParser;
-	bool isPE = PEParser_load_header(parser, pInode);
-	bool isELF = false;
-	if (!isPE) {
-		isELF = elfParser.load(pInode) == 0;
-	}
-
-        if ( !isPE && !isELF )
-        {
+        if (!PEParser_load_header(parser, pInode)) {
                 fileMgr.m_InodeTable->IPut(pInode);
                 PEParser_free(parser);
                 return;
         }
 
  	/* 获取分析PE头结构得到正文段的起始地址、长度 */
-	auto textAddr = isPE ? parser->TextAddress : elfParser.textAddr;
+	auto textAddr = parser->TextAddress;
 	User_get_MemoryDescriptor().m_TextStartAddress = textAddr;
 
-	auto textSize = isPE ? parser->TextSize : elfParser.textSize;
+	auto textSize = parser->TextSize;
 	User_get_MemoryDescriptor().m_TextSize = textSize;
 
 	/* 数据段的起始地址、长度 */
-	auto dataAddr = isPE ? parser->DataAddress : elfParser.dataAddr;
+	auto dataAddr = parser->DataAddress;
 	User_get_MemoryDescriptor().m_DataStartAddress = dataAddr;
 
-	auto dataSize = isPE ? parser->DataSize : elfParser.dataSize;
+	auto dataSize = parser->DataSize;
 	User_get_MemoryDescriptor().m_DataSize = dataSize;
 
 	/* 堆栈段初始化长度 */
-	auto stackSize = isPE ? parser->StackSize : elfParser.stackSize;
+	auto stackSize = parser->StackSize;
 	User_get_MemoryDescriptor().m_StackSize = stackSize;
 
 	if ( textSize + dataSize + stackSize  + PAGE_SIZE > MemoryDescriptor::USER_SPACE_SIZE - textAddr)
@@ -686,11 +677,7 @@ void ProcessManager::Exec()
 	User_get_MemoryDescriptor().EstablishUserPageTable(textAddr, textSize, dataAddr, dataSize, stackSize);
 
 	/* 从exe文件中依次读入.text段、.data段、.rdata段、.bss段 */
-	if (isPE) {
-                PEParser_relocate(parser, pInode, sharedText);
-	} else {
-		elfParser.relocate(pInode, sharedText);
-	}
+        PEParser_relocate(parser, pInode, sharedText);
 
 	/* .text段在swap分区上留复本 */
 	if(!sharedText)
@@ -740,8 +727,8 @@ void ProcessManager::Exec()
 	}
 
 	/* 将exe程序的入口地址放入核心栈现场保护区中的EAX作为系统调用返回值，这个是runtime要用  */
-	User_get_ar0()[User::EAX] = isPE ? parser->EntryPointAddress : elfParser.entryPointAddr;
-	
+	User_get_ar0()[User::EAX] = parser->EntryPointAddress;
+
 	/* 构造出Exec()系统调用的退出环境，使之退出到ring3时，开始执行user code */
 	struct pt_context* pContext = (struct pt_context *)User_get_arg()[4];
 	pContext->eip = 0x00000000;	/* 退出到ring3特权级下从线性地址0x00000000处runtime()开始执行 */
@@ -758,7 +745,7 @@ Process* ProcessManager::Select ()
 {
 	/* 前一次选中上台进程 */
 	static int lastSelect = 0;
-	
+
 	while (true)
 	{
 		int priority = 256;
