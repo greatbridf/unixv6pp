@@ -21,10 +21,10 @@ public:
 		B_ASYNC	= 0x40,		/* 异步I/O，不需要等待其结束 */
 		B_DELWRI = 0x80		/* 延迟写，在相应缓存要移做他用时，再将其内容写到相应块设备上 */
 	};
-	
+
 public:
 	unsigned int b_flags;	/* 缓存控制块标志位 */
-	
+
 	int		padding;		/* 4字节填充，使得b_forw和b_back在Buf类中与Devtab类
 							 * 中的字段顺序能够一致，否则强制转换会出错。 */
 	/* 缓存控制块队列勾连指针 */
@@ -32,7 +32,7 @@ public:
 	Buf*	b_back;
 	Buf*	av_forw;
 	Buf*	av_back;
-	
+
 	short	b_dev;			/* 主、次设备号，其中高8位是主设备号，低8位是次设备号 */
 	int		b_wcount;		/* 需传送的字节数 */
 	unsigned char* b_addr;	/* 指向该缓存控制块所管理的缓冲区的首地址 */

@@ -3,13 +3,9 @@ use kernel_macros::define_class_compat;
 
 use crate::{
     constants::PosixError,
-    dev::buffer::DevId,
+    dev::{buffer::{DevId, PhysicalBlock}, buffer_manager::global_buffer_manager},
     fs::{
-        self,
-        file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles},
-        file_system::FileSystem,
-        inode::{fileref_leak, inoderef_leak, Inode, InodeFlag, InodeMode},
-        FileRef, InodeRef,
+        self, FileRef, InodeRef, file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles}, file_system::FileSystem, inode::{Inode, InodeFlag, InodeMode, fileref_leak, inoderef_leak}
     },
     proc::{sleep, wakeup_all},
     sync::SpinExt,
@@ -142,10 +138,10 @@ impl InodeTable {
         }
     }
 
-    fn i_get_not_found(&mut self, dev: DevId, ino: i32) -> Result<InodeRef, PosixError> {
+    fn i_get_not_found(&mut self, dev: DevId, ino: i32) -> Option<InodeRef> {
         let iref = self.get_free_inode().ok_or(PosixError::ENFILE)?;
         {
-            let mut inode = inode.lock();
+            let mut inode = iref.lock();
             inode.i_dev = dev;
             inode.i_number = ino;
             inode.i_flag = InodeFlag::ILOCK;
@@ -153,22 +149,23 @@ impl InodeTable {
             inode.i_lastr = -1;
         }
 
-        let sector = FileSystem::INODE_ZONE_START_SECTOR
-            + ino as usize / FileSystem::INODE_NUMBER_PER_SECTOR;
+        let sector = FileSystem::INODE_ZONE_START_SECTOR as u32
+            + ino as u32 / FileSystem::INODE_NUMBER_PER_SECTOR as u32;
 
-        let buffer = buffer_read(dev, sector);
+        extern "C" {
+            fn compat_bread(inode: InodeRefCompat, dev: DevId,
+                sector: u32, ino: i32) -> bool;
+        }
 
-        // TODO: buffer
-        //let buf = kernel::buf_bread(dev, PhysicalBlock(sector as u32));
+        let retval = unsafe {
+            compat_bread(inoderef_leak(iref.clone()), dev, sector, ino)
+        };
 
-        //if buf.b_flags.contains(BufFlag::B_ERROR) {
-        //    drop(buf);
-        //    self.i_put(inode.clone());
-        //    return Err(Error::EIO);
-        //}
-
-        //inode.lock().i_copy(&buf, inumber as usize);
-        return Ok(inode);
+        if retval {
+            Some(iref)
+        } else {
+            None
+        }
     }
 
     pub fn i_get(&mut self, dev: DevId, ino: i32) -> Result<InodeRef, PosixError> {

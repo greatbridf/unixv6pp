@@ -106,29 +106,33 @@ Inode* InodeTable::IGet(short dev, int inumber)
 				pInode->i_count++;
 				pInode->i_lastr = -1;
 
-				BufferManager& bm = Kernel::Instance().GetBufferManager();
-				/* 将该外存Inode读入缓冲区 */
-				Buf* pBuf = bm.Bread(dev, fs::INODE_SECTOR_OFF + inumber / FileSystem::INODE_NUMBER_PER_SECTOR );
 
-				/* 如果发生I/O错误 */
-				if(pBuf->b_flags & Buf::B_ERROR)
-				{
-					/* 释放缓存 */
-					bm.Brelse(pBuf);
-					/* 释放占据的内存Inode */
-					this->IPut(pInode);
-					return NULL;
-				}
-
-				/* 将缓冲区中的外存Inode信息拷贝到新分配的内存Inode中 */
-				pInode->ICopy(pBuf, inumber);
-				/* 释放缓存 */
-				bm.Brelse(pBuf);
-				return pInode;
 			}
 		}
 	}
 	return NULL;	/* GCC likes it! */
+}
+
+extern "C" bool compat_bread(Inode* pInode, short dev, int sector, int ino) {
+        BufferManager& bm = Kernel::Instance().GetBufferManager();
+        /* 将该外存Inode读入缓冲区 */
+        Buf* pBuf = bm.Bread(dev, fs::INODE_SECTOR_OFF + ino / FileSystem::INODE_NUMBER_PER_SECTOR );
+
+        /* 如果发生I/O错误 */
+        if(pBuf->b_flags & Buf::B_ERROR)
+        {
+                /* 释放缓存 */
+                bm.Brelse(pBuf);
+                /* 释放占据的内存Inode */
+                g_InodeTable.IPut(pInode);
+                return false;
+        }
+
+        /* 将缓冲区中的外存Inode信息拷贝到新分配的内存Inode中 */
+        pInode->ICopy(pBuf, ino);
+        /* 释放缓存 */
+        bm.Brelse(pBuf);
+        return true;
 }
 
 /* close文件时会调用Iput
