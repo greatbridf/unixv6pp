@@ -113,7 +113,7 @@ pub struct Userspace {
     egid: u16,
 
     pub open_files: OpenFiles,
-    ioparam: IOParameter,
+    pub ioparam: IOParameter,
 }
 
 impl Userspace {

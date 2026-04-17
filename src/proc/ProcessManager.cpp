@@ -513,46 +513,48 @@ void ProcessManager::Exec()
 		return;
 	}
 
-	PEParser peParser;
+        struct pe_parser* parser = PEParser_new();
 	ELF::Parser elfParser;
-	bool isPE = peParser.HeaderLoad(pInode);
+	bool isPE = PEParser_load_header(parser, pInode);
 	bool isELF = false;
 	if (!isPE) {
 		isELF = elfParser.load(pInode) == 0;
 	}
 
-    if ( !isPE && !isELF )
-    {
-        fileMgr.m_InodeTable->IPut(pInode);
-        return;
-    }
+        if ( !isPE && !isELF )
+        {
+                fileMgr.m_InodeTable->IPut(pInode);
+                PEParser_free(parser);
+                return;
+        }
 
  	/* 获取分析PE头结构得到正文段的起始地址、长度 */
-	auto textAddr = isPE ? peParser.TextAddress : elfParser.textAddr;
+	auto textAddr = isPE ? parser->TextAddress : elfParser.textAddr;
 	User_get_MemoryDescriptor().m_TextStartAddress = textAddr;
 
-	auto textSize = isPE ? peParser.TextSize : elfParser.textSize;
+	auto textSize = isPE ? parser->TextSize : elfParser.textSize;
 	User_get_MemoryDescriptor().m_TextSize = textSize;
 
 	/* 数据段的起始地址、长度 */
-	auto dataAddr = isPE ? peParser.DataAddress : elfParser.dataAddr;
+	auto dataAddr = isPE ? parser->DataAddress : elfParser.dataAddr;
 	User_get_MemoryDescriptor().m_DataStartAddress = dataAddr;
 
-	auto dataSize = isPE ? peParser.DataSize : elfParser.dataSize;
+	auto dataSize = isPE ? parser->DataSize : elfParser.dataSize;
 	User_get_MemoryDescriptor().m_DataSize = dataSize;
 
 	/* 堆栈段初始化长度 */
-	auto stackSize = isPE ? peParser.StackSize : elfParser.stackSize;
+	auto stackSize = isPE ? parser->StackSize : elfParser.stackSize;
 	User_get_MemoryDescriptor().m_StackSize = stackSize;
-	
+
 	if ( textSize + dataSize + stackSize  + PAGE_SIZE > MemoryDescriptor::USER_SPACE_SIZE - textAddr)
 	{
 		fileMgr.m_InodeTable->IPut(pInode);
 		User_get_error() = User::ENOMEM;
+                PEParser_free(parser);
 		return;
 	}
 
-	/* 
+	/*
 	 * 分配内存用于存放用户程序运行需要的参数argc，argv[]，这些参数由exec()系统调用传入，
 	 * 位于进程图像改换前的用户栈中，将参数备份到fakeStack中，然后可以释放原进程图像，
 	 * 分配好新进程图像之后，再将fakeStack中的备份参数拷贝到新进程的用户栈中。
@@ -685,7 +687,7 @@ void ProcessManager::Exec()
 
 	/* 从exe文件中依次读入.text段、.data段、.rdata段、.bss段 */
 	if (isPE) {
-		peParser.Relocate(pInode, sharedText);
+                PEParser_relocate(parser, pInode, sharedText);
 	} else {
 		elfParser.relocate(pInode, sharedText);
 	}
@@ -738,7 +740,7 @@ void ProcessManager::Exec()
 	}
 
 	/* 将exe程序的入口地址放入核心栈现场保护区中的EAX作为系统调用返回值，这个是runtime要用  */
-	User_get_ar0()[User::EAX] = isPE ? peParser.EntryPointAddress : elfParser.entryPointAddr;
+	User_get_ar0()[User::EAX] = isPE ? parser->EntryPointAddress : elfParser.entryPointAddr;
 	
 	/* 构造出Exec()系统调用的退出环境，使之退出到ring3时，开始执行user code */
 	struct pt_context* pContext = (struct pt_context *)User_get_arg()[4];
@@ -748,6 +750,8 @@ void ProcessManager::Exec()
 	pContext->eflags = 0x200;	/* 此项是否篡改无关紧要 */
 	pContext->esp = esp;
 	pContext->xss = Machine::USER_DATA_SEGMENT_SELECTOR;
+
+        PEParser_free(parser);
 }
 
 Process* ProcessManager::Select ()

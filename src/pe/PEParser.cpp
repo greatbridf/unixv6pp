@@ -32,7 +32,7 @@ unsigned int PEParser::Relocate(Inode* p_inode, bool sharedText)
 	unsigned int textBegin = this->TextAddress >> 12 , textLength = this->TextSize >> 12;
 	PageTableEntry* pointer = (PageTableEntry *)pUserPageTable;
 
-	
+
 	/*如果与其它进程共享正文段，共享正文段切不可清0*/
 
 	int secIdxInit = !!sharedText;
@@ -188,4 +188,8 @@ bool PEParser::HeaderLoad(Inode* p_inode)
                     ntHeader.OptionalHeader.ImageBase;
 
 	return true;
+}
+
+extern "C" void inode_read(Inode* pInode) {
+	pInode->ReadI();
 }
