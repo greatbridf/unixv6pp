@@ -18,6 +18,17 @@ pub enum BufferError {
     InvalidBuffer,
 }
 
+impl From<BufferError> for PosixError {
+    fn from(value: BufferError) -> Self {
+        match value {
+            BufferError::InvalidDevice => PosixError::ENXIO,
+            BufferError::BufferUnavailable => PosixError::EIO,
+            BufferError::IoError => PosixError::EIO,
+            BufferError::InvalidBuffer => PosixError::EINVAL,
+        }
+    }
+}
+
 pub type BufferResult<T> = Result<T, BufferError>;
 
 pub struct BufferManager {
@@ -651,17 +662,8 @@ pub fn process_wakeup_all(chan: usize) {
     }
 }
 
-fn buffer_error_to_posix(err: BufferError) -> PosixError {
-    match err {
-        BufferError::InvalidDevice => PosixError::ENXIO,
-        BufferError::BufferUnavailable => PosixError::EIO,
-        BufferError::IoError => PosixError::EIO,
-        BufferError::InvalidBuffer => PosixError::EINVAL,
-    }
-}
-
 fn set_buffer_error(err: BufferError) {
-    Userspace::get().set_error(buffer_error_to_posix(err));
+    Userspace::get().set_error(err.into());
 }
 
 #[no_mangle]
