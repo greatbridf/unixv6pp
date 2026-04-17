@@ -162,20 +162,17 @@ impl OpenFiles {
             return Err(PosixError::EBADF);
         }
 
-        crate::println_info!("Get({})", fd);
         self.table[fd].clone().ok_or(PosixError::EBADF)
     }
 
     pub fn set_f(&mut self, fd: usize, file: FileRef) {
         if fd < Self::NOFILES {
-            crate::println_info!("Set({})", fd);
             self.table[fd] = Some(file);
         }
     }
 
     pub fn clear_f(&mut self, fd: usize) {
         if fd < Self::NOFILES {
-            crate::println_info!("Close({})", fd);
             self.table[fd] = None;
         }
     }
