@@ -744,3 +744,7 @@ DiskInode::~DiskInode()
 {
 	//nothing to do here
 }
+
+extern "C" void inode_read(Inode* pInode) {
+	pInode->ReadI();
+}
