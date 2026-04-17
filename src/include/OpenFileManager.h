@@ -17,6 +17,8 @@ struct open_file_table;
 File* f_alloc(struct open_file_table* oft);
 void f_close(struct open_file_table* oft, File* file);
 
+extern "C" bool InodeTable_is_loaded(short dev, int ino);
+
 /*
  * 内存Inode表(class InodeTable)
  * 负责内存Inode的分配和释放。

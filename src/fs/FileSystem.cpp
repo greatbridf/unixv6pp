@@ -232,7 +232,7 @@ Inode* FileSystem::IAlloc(short dev)
 				 * 该inode是空闲的，因为有可能是内存inode没有写到
 				 * 磁盘上,所以要继续搜索内存inode中是否有相应的项
 				 */
-				if( g_InodeTable.IsLoaded(dev, ino) == -1 )
+				if(!InodeTable_is_loaded(dev, ino))
 				{
 					/* 该外存Inode没有对应的内存拷贝，将其记入空闲Inode索引表 */
 					sb->s_inode[sb->s_ninode++] = ino;

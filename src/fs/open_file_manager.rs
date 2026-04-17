@@ -6,12 +6,12 @@ use crate::{
     dev::buffer::DevId,
     fs::{
         self,
-        file::{File, FileFlags, FileRefCompat, OpenFiles},
+        file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles},
         file_system::FileSystem,
-        inode::{fileref_leak, InodeFlag, InodeMode, Inode},
+        inode::{fileref_leak, inoderef_leak, Inode, InodeFlag, InodeMode},
         FileRef, InodeRef,
     },
-    proc::wakeup_all,
+    proc::{sleep, wakeup_all},
     sync::SpinExt,
     user::Userspace,
 };
@@ -142,66 +142,71 @@ impl InodeTable {
         }
     }
 
-    pub fn i_get(&mut self, dev: DevId, inumber: i32) -> Result<InodeRef, PosixError> {
+    fn i_get_not_found(&mut self, dev: DevId, ino: i32) -> Result<InodeRef, PosixError> {
+        let iref = self.get_free_inode().ok_or(PosixError::ENFILE)?;
+        {
+            let mut inode = inode.lock();
+            inode.i_dev = dev;
+            inode.i_number = ino;
+            inode.i_flag = InodeFlag::ILOCK;
+            inode.i_count = 1;
+            inode.i_lastr = -1;
+        }
+
+        let sector = FileSystem::INODE_ZONE_START_SECTOR
+            + ino as usize / FileSystem::INODE_NUMBER_PER_SECTOR;
+
+        let buffer = buffer_read(dev, sector);
+
+        // TODO: buffer
+        //let buf = kernel::buf_bread(dev, PhysicalBlock(sector as u32));
+
+        //if buf.b_flags.contains(BufFlag::B_ERROR) {
+        //    drop(buf);
+        //    self.i_put(inode.clone());
+        //    return Err(Error::EIO);
+        //}
+
+        //inode.lock().i_copy(&buf, inumber as usize);
+        return Ok(inode);
+    }
+
+    pub fn i_get(&mut self, dev: DevId, ino: i32) -> Result<InodeRef, PosixError> {
         let mut dev = dev;
-        let mut inumber = inumber;
 
         loop {
-            if let Some(inode) = self.is_loaded(dev, inumber) {
-                let mut inode_ref = inode.lock();
+            let Some(iref) = self.get(dev, ino) else {
+                todo!()
+            };
+            let mut inode = iref.lock();
 
-                if inode_ref.i_flag.contains(InodeFlag::ILOCK) {
-                    // TODO: sleep
-                    inode_ref.i_flag |= InodeFlag::IWANT;
-                    //kernel::get_process_manager()
-                    //    .sleep(inode as *mut _ as usize, ProcessManager::PINOD);
-                }
-
-                if inode_ref.i_flag.contains(InodeFlag::IMOUNT) {
-                    let mount_dev = fs::global_file_system()
-                        .get_mount(&inode_ref)
-                        .map(|mount| mount.m_dev);
-                    drop(inode_ref);
-
-                    if let Some(mount_dev) = mount_dev {
-                        dev = mount_dev;
-                        inumber = FileSystem::ROOTINO;
-                        continue;
-                    }
-
-                    return Err(PosixError::ENOENT);
-                }
-
-                inode_ref.i_count += 1;
-                inode_ref.i_flag |= InodeFlag::ILOCK;
-                drop(inode_ref);
-                return Ok(inode);
+            if inode.i_flag.contains(InodeFlag::ILOCK) {
+                inode.i_flag.insert(InodeFlag::IWANT);
+                sleep(&***inode);
+                continue;
             }
 
-            let inode = self.get_free_inode().ok_or(PosixError::ENFILE)?;
-            {
-                let mut inode = inode.lock();
-                inode.i_dev = dev;
-                inode.i_number = inumber;
-                inode.i_flag = InodeFlag::ILOCK;
-                inode.i_count = 1;
-                inode.i_lastr = -1;
+            if iref.i_flag.contains(InodeFlag::IMOUNT) {
+                itable_comp_iget1(inoderef_leak(iref.clone()), &mut dev, &mut ino);
+                continue;
+                // let mount_dev = fs::global_file_system()
+                //     .get_mount(&inode_ref)
+                //     .map(|mount| mount.m_dev);
+                // drop(inode_ref);
+
+                // if let Some(mount_dev) = mount_dev {
+                //     dev = mount_dev;
+                //     ino = FileSystem::ROOTINO;
+                //     continue;
+                // }
+
+                // return Err(PosixError::ENOENT);
             }
 
-            let _sector = FileSystem::INODE_ZONE_START_SECTOR
-                + inumber as usize / FileSystem::INODE_NUMBER_PER_SECTOR;
+            inode.i_count += 1;
+            inode.i_flag.insert(InodeFlag::ILOCK);
 
-            // TODO: buffer
-            //let buf = kernel::buf_bread(dev, PhysicalBlock(sector as u32));
-
-            //if buf.b_flags.contains(BufFlag::B_ERROR) {
-            //    drop(buf);
-            //    self.i_put(inode.clone());
-            //    return Err(Error::EIO);
-            //}
-
-            //inode.lock().i_copy(&buf, inumber as usize);
-            return Ok(inode);
+            break Ok(iref);
         }
     }
 
@@ -241,14 +246,21 @@ impl InodeTable {
         }
     }
 
-    pub fn is_loaded(&self, dev: DevId, inumber: i32) -> Option<InodeRef> {
-        self.m_inode
-            .iter()
-            .find(|inode| {
-                let inode = inode.lock();
-                inode.i_dev == dev && inode.i_number == inumber && inode.i_count != 0
-            })
-            .cloned()
+    pub fn get(&self, dev: DevId, ino: i32) -> Option<InodeRef> {
+        for iref in &self.m_inode {
+            let inode = iref.lock();
+            if inode.i_dev != dev || inode.i_number != ino || inode.i_count <= 0 {
+                continue;
+            }
+
+            return Some(iref.clone());
+        }
+
+        None
+    }
+
+    pub fn is_loaded(&self, dev: DevId, ino: i32) -> bool {
+        self.get(dev, ino).is_some()
     }
 
     pub fn get_free_inode(&self) -> Option<InodeRef> {
@@ -258,3 +270,9 @@ impl InodeTable {
             .cloned()
     }
 }
+
+define_class_compat! {impl InodeTable {
+    pub fn is_loaded(&self, dev: DevId, ino: i32) -> bool {
+        this.get(dev, ino).is_some()
+    }
+}}
