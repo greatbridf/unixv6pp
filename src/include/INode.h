@@ -3,6 +3,12 @@
 
 #include "Buf.h"
 
+class Inode;
+
+extern "C" void Inode_clean(Inode*);
+extern "C" void Inode_file_lock(Inode*);
+extern "C" void Inode_pipe_lock(Inode*);
+
 /*
  * 内存索引节点(INode)的定义
  * 系统中每一个打开的文件、当前访问目录、
@@ -101,7 +107,9 @@ public:
 	/*
 	 * @comment 对Pipe上锁，如果Pipe已经被上锁，则增设IWANT标志并睡眠等待直至解锁
 	 */
-	void Plock();
+        inline void Plock() {
+                Inode_pipe_lock(this);
+        }
 
 	/*
 	 * @comment 对Pipe或者Inode解锁，并且唤醒因等待锁而睡眠的进程
@@ -111,16 +119,16 @@ public:
 	/*
 	 * @comment 对Pipe上锁，如果Pipe已经被上锁，则增设IWANT标志并睡眠等待直至解锁
 	 */
-	void NFlock();
+        inline void NFlock() {
+                Inode_file_lock(this);
+        }
 
 	/*
 	 * @comment 清空Inode对象中的数据
 	 */
-	void Clean();
-	/*
-	 * @comment 将包含外存Inode字符块中信息拷贝到内存Inode中
-	 */
-	void ICopy(Buf* bp, int inumber);
+        inline void Clean() {
+                Inode_clean(this);
+        }
 
 	/* Members */
 public:

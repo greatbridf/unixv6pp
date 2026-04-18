@@ -1,17 +1,16 @@
 use crate::{
     dev::{
-        block_device::block_device_for_dev,
-        buffer::{Buf, DevId, LogicalBlock, PhysicalBlock},
-        char_device::char_device_for_dev,
+        block_device::block_device_for_dev, buffer::{Buf, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO}, char_device::char_device_for_dev
     },
     fs::{
         self, FileRef, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem
-    }, proc::{Channel, wakeup_all}, sync::SpinExt
+    }, proc::{Channel, sleep, wakeup_all}, sync::SpinExt
 };
 use alloc::sync::Arc;
 use bitflags::bitflags;
+use kernel_macros::define_class_compat;
 use core::fmt::Error;
-use eonix_spin::Spin;
+use eonix_spin::{NoContext, Spin, SpinGuard};
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -550,33 +549,45 @@ impl Inode {
         }
     }
 
-    fn lock_with_priority(&mut self, priority: i32) {
-        // TODO: user args
-        //let u = kernel::get_user();
-        while self.i_flag.contains(InodeFlag::ILOCK) {
-            self.i_flag.insert(InodeFlag::IWANT);
-            //u.u_procp.sleep(self as *mut _ as usize, priority);
+    fn lock_pri(me: &Spin<Self>, pri: u32) -> SpinGuard<'_, Inode, NoContext> {
+        loop {
+            let mut inode = me.lock();
+            if !inode.i_flag.contains(InodeFlag::ILOCK) {
+                inode.i_flag.insert(InodeFlag::ILOCK);
+                return inode;
+            }
+
+            inode.i_flag.insert(InodeFlag::IWANT);
+            let chan = (&*inode).channel_addr();
+
+            drop(inode);
+            sleep(chan, pri);
         }
-        self.i_flag.insert(InodeFlag::ILOCK);
+    }
+
+    pub fn lock_file(me: &Spin<Self>) -> SpinGuard<'_, Inode, NoContext> {
+        Self::lock_pri(me, PRIBIO as u32)
+    }
+
+    pub fn lock_pipe(me: &Spin<Self>) -> SpinGuard<'_, Inode, NoContext> {
+        Self::lock_pri(me, PPIPE)
     }
 
     pub fn nf_rele(&mut self) {
         self.unlock_and_wake();
     }
 
-    pub fn nf_lock(&mut self) {
-        self.lock_with_priority(0);
-    }
-
     pub fn prele(&mut self) {
         self.unlock_and_wake();
     }
 
-    pub fn plock(&mut self) {
-        self.lock_with_priority(0);
-    }
-
     pub fn clean(&mut self) {
+        /*
+         * Inode::Clean()特定用于IAlloc()中清空新分配DiskInode的原有数据，
+         * 即旧文件信息。Clean()函数中不应当清除i_dev, i_number, i_flag, i_count,
+         * 这是属于内存Inode而非DiskInode包含的旧文件信息，而Inode类构造函数需要
+         * 将其初始化为无效值。
+         */
         self.i_mode = InodeMode::empty();
         self.i_nlink = 0;
         self.i_uid = -1;
@@ -632,3 +643,19 @@ pub struct DiskInode {
     pub d_atime: i32,
     pub d_mtime: i32,
 }
+
+define_class_compat! {impl Inode {
+    pub fn clean(&mut self) {
+        this.clean();
+    }
+
+    pub fn file_lock(this: *mut Inode) {
+        let this = unsafe { Spin::ref_from_inner(this) };
+        Inode::lock_file(unsafe { &*this });
+    }
+
+    pub fn pipe_lock(this: *mut Inode) {
+        let this = unsafe { Spin::ref_from_inner(this) };
+        Inode::lock_pipe(unsafe { &*this });
+    }
+}}

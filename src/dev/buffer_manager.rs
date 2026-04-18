@@ -8,8 +8,9 @@ use super::{
     device_manager::{set_minor, ROOTDEV},
 };
 
-const PRIBIO: i32 = -50;
-const PSWP: i32 = -100;
+pub const PRIBIO: i32 = -50;
+pub const PPIPE: u32 = 1;
+pub const PSWP: i32 = -100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BufferError {

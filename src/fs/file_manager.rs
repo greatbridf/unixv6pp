@@ -278,8 +278,7 @@ impl FileManager {
 
         let start_offset = file.lock().f_offset;
         let advanced = {
-            let mut inode_ref = inode.lock();
-            inode_ref.nf_lock();
+            let mut inode_ref = Inode::lock_file(&inode);
 
             let result = if mode == FileFlags::FREAD {
                 inode_ref
@@ -352,8 +351,7 @@ impl FileManager {
             .cloned()
             .ok_or(PosixError::EBADF)?;
 
-        let mut inode_ref = inode.lock();
-        inode_ref.plock();
+        let mut inode_ref = Inode::lock_pipe(&inode);
 
         let mut file_ref = file.lock();
         if file_ref.f_offset == inode_ref.i_size as i32 {
@@ -388,8 +386,7 @@ impl FileManager {
             .cloned()
             .ok_or(PosixError::EBADF)?;
 
-        let mut inode_ref = inode.lock();
-        inode_ref.plock();
+        let mut inode_ref = Inode::lock_pipe(&inode);
 
         if inode_ref.i_count < 2 {
             inode_ref.prele();
