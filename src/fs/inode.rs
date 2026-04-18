@@ -778,4 +778,12 @@ define_class_compat! {impl Inode {
         let buf = this.get_blk(LogicalBlock(blkid), &mut ra);
         buf.map(|buf| buf.phyblk()).unwrap_or(PhysicalBlock::ZERO)
     }
+
+    pub fn get_dev(&mut self) -> DevId {
+        DevId(this.i_addr[0].0 as i16)
+    }
+
+    pub fn set_dev(&mut self, dev: DevId) {
+        this.i_addr[0].0 = dev.0 as _;
+    }
 }}

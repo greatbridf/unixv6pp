@@ -553,7 +553,7 @@ int SystemCall::Sys_Stty()
 		User_get_error() = User::ENOTTY;
 		return 0;
 	}
-	short dev = pInode->i_addr[0];
+	short dev = Inode_get_dev(pInode);
 	Kernel::Instance().GetDeviceManager().GetCharDevice(dev).SgTTy(dev, pTTy);
 
 	return 0;	/* GCC likes it ! */
@@ -578,7 +578,7 @@ int SystemCall::Sys_Gtty()
 		User_get_error() = User::ENOTTY;
 		return 0;
 	}
-	short dev = pInode->i_addr[0];
+	short dev = Inode_get_dev(pInode);
 	Kernel::Instance().GetDeviceManager().GetCharDevice(dev).SgTTy(dev, pTTy);
 
 	return 0;	/* GCC likes it ! */

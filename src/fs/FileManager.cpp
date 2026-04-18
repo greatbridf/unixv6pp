@@ -1116,9 +1116,7 @@ void FileManager::MkNod()
 	}
 	/* 所建立是设备文件 */
 	if ( (pInode->i_mode & (Inode::IFBLK | Inode::IFCHR)) != 0 )
-	{
-		pInode->i_addr[0] = User_get_arg()[2];
-	}
+                Inode_set_dev(pInode, User_get_arg()[2]);
 	InodeTable_put(pInode);
 }
 /*==========================class DirectoryEntry===============================*/
