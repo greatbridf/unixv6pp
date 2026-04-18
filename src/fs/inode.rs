@@ -644,23 +644,6 @@ impl Inode {
         self.i_addr = [PhysicalBlock(0); 10];
     }
 
-    pub fn i_copy(&mut self, buf: &Buf, inumber: usize) {
-        let offset = (inumber % FileSystem::INODE_NUMBER_PER_SECTOR) * size_of::<DiskInode>();
-
-        let src = &buf.as_slice()[offset..offset + size_of::<DiskInode>()];
-
-        // SAFETY: DiskInode is #[repr(C)] Plain Old Data
-        let d_inode: DiskInode =
-            unsafe { core::ptr::read_unaligned(src.as_ptr() as *const DiskInode) };
-
-        self.i_mode = d_inode.d_mode;
-        self.i_nlink = d_inode.d_nlink;
-        self.i_uid = d_inode.d_uid;
-        self.i_gid = d_inode.d_gid;
-        self.i_size = d_inode.d_size;
-        self.i_addr = d_inode.d_addr;
-    }
-
     pub fn channel_read(&self) -> impl Channel + use<'_> {
         let ptr = self as *const Self;
 
