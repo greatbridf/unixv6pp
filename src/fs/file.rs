@@ -61,7 +61,7 @@ impl Deref for InodeRefCompat {
     fn deref(&self) -> &Self::Target {
         unsafe {
             // SAFETY: InodeRefCompat invariant guarantees this.
-            &*Spin::ref_from_inner(self as *const _ as *mut _)
+            &*Spin::ref_from_inner(self.0.as_ptr())
         }
     }
 }
