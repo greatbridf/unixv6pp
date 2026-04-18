@@ -1,6 +1,6 @@
 use crate::{
     constants::PosixError, dev::{
-        block_device::block_device_for_dev, buffer::{Buf, Buffer, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO, global_buffer_manager}, char_device::{char_device_for_dev, char_device_read}
+        block_device::block_device_for_dev, buffer::{Buf, Buffer, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO, global_buffer_manager}, char_device::{char_device_for_dev, char_device_read, char_device_write}
     }, fs::{
         self, FileRef, IOParameter, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem
     }, proc::{Channel, sleep, wakeup_all}, sync::SpinExt, user::Userspace
@@ -273,67 +273,76 @@ impl Inode {
     }
 
     pub fn write_i(&mut self, m_count: usize, m_offset: usize) -> Result<(), PosixError> {
+        todo!()
+    }
+
+    pub fn write(
+        &mut self, mut buffer: &[u8], mut offset: usize
+    ) -> Result<usize, PosixError> {
         self.i_flag |= InodeFlag::IACC | InodeFlag::IUPD;
 
-        // char device
-        if (self.i_mode & InodeMode::IFMT) == InodeMode::IFCHR {
-            let dev = self.i_addr[0].0 as i16;
-            // TODO: dev manager
-            // kernel::get_device_manager().get_char_device(major).write(dev);
-            return Ok(());
-        }
-
-        if m_count == 0 {
-            return Ok(());
-        }
-
         let is_blk = (self.i_mode & InodeMode::IFMT) == InodeMode::IFBLK;
-        let mut m_count = m_count;
-        let mut m_offset = m_offset;
+        let is_chr = (self.i_mode & InodeMode::IFMT) == InodeMode::IFCHR;
 
-        while m_count != 0 {
-            let lbn = m_offset / Self::BLOCK_SIZE;
-            let offset = m_offset % Self::BLOCK_SIZE;
-            let nbytes = (Self::BLOCK_SIZE - offset).min(m_count);
+        if is_chr {
+            let devid = self.i_addr[0].0 as i16;
+            char_device_write(devid);
+            return Ok(0);
+        }
+
+        if buffer.is_empty() {
+            return Ok(0);
+        }
+
+        let mut nwrite = 0;
+        while Userspace::get().error.is_none() && buffer.len() != 0 {
+            let lbn = offset / Self::BLOCK_SIZE;
+            let inner_offset = offset % Self::BLOCK_SIZE;
+            let mut nbytes = (Self::BLOCK_SIZE - inner_offset).min(buffer.len());
+
             let mut ra = None;
+            let (bn, dev);
+            if !is_blk {
+                let Some(blk) = self.get_blk(LogicalBlock(lbn as u32), &mut ra) else {
+                    return Ok(nwrite);
+                };
 
-            let (_dev, _bn) = if !is_blk {
-                let result = self.get_blk(LogicalBlock(lbn as u32), &mut ra).unwrap();
-                if result.phyblk() == PhysicalBlock(0) {
-                    return Ok(());
-                }
-                (self.i_dev, result.phyblk())
+                bn = blk.phyblk();
+                dev = self.i_dev;
             } else {
-                (DevId(self.i_addr[0].0 as i16), PhysicalBlock(lbn as u32))
-            };
+                bn = PhysicalBlock(lbn as u32);
+                dev = DevId(self.i_addr[0].0 as i16);
+            }
 
-            // TODO: buffer manager
-            // let mut buf = if nbytes == Self::BLOCK_SIZE {
-            //     kernel::buf_get_blk(_dev, _bn)
-            // } else {
-            //     kernel::buf_bread(_dev, _bn)
-            // };
+            let mut blk;
+            if nbytes == Self::BLOCK_SIZE {
+                let bp = global_buffer_manager().get_blk(dev, bn)?;
+                blk = unsafe { Buffer::new(bp) };
+            } else {
+                blk = global_buffer_manager().bread(dev, bn)?;
+            }
 
-            // TODO: io move
-            // let dst = &mut buf.as_slice_mut()[offset..offset + nbytes];
-            // io.copy_from_user(dst);
+            let data = &mut blk.as_bytes_mut()[inner_offset..];
+            data[..nbytes].copy_from_slice(&buffer[..nbytes]);
 
-            m_offset += nbytes;
-            m_count -= nbytes;
+            buffer = &buffer[nbytes..];
+            offset += nbytes;
+            nwrite += nbytes;
 
-            // TODO: buffer manager
-            // if      has_error          { drop(buf);           }
-            // else if m_offset % BLOCK_SIZE == 0 { buf.into_bawrite(); }
-            // else                       { buffer_manager.bdwrite(buf); }
+            if offset % Self::BLOCK_SIZE == 0 {
+                global_buffer_manager().bawrite(blk.into_raw());
+            } else {
+                global_buffer_manager().bdwrite(blk.into_raw());
+            }
 
-            if !is_blk && self.i_size < m_offset as _ {
-                self.i_size = m_offset as _;
+            if !is_blk && !is_chr && self.i_size < offset as _ {
+                self.i_size = offset as _;
             }
 
             self.i_flag |= InodeFlag::IUPD;
         }
 
-        Ok(())
+        Ok(nwrite)
     }
 
     /// Get the physical block ID of direct blocks.
@@ -720,6 +729,27 @@ define_class_compat! {impl Inode {
                 ioparam.m_count -= nread;
                 ioparam.m_base += nread;
                 ioparam.m_offset += nread;
+            }
+        }
+    }
+
+    pub fn write(&mut self) {
+        let IOParameter { m_base, m_count, m_offset } = Userspace::get().ioparam;
+
+        let buffer = unsafe {
+            core::slice::from_raw_parts(
+                m_base as *const u8,
+                m_count,
+            )
+        };
+
+        match this.write(buffer, m_offset) {
+            Err(err) => Userspace::get().error = Some(err),
+            Ok(nwrite) => {
+                let ioparam = &mut Userspace::get().ioparam;
+                ioparam.m_count -= nwrite;
+                ioparam.m_base += nwrite;
+                ioparam.m_offset += nwrite;
             }
         }
     }

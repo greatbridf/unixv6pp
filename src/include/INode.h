@@ -10,6 +10,7 @@ extern "C" void Inode_file_lock(Inode*);
 extern "C" void Inode_pipe_lock(Inode*);
 extern "C" void Inode_release_lock(Inode*);
 extern "C" void Inode_read(Inode*);
+extern "C" void Inode_write(Inode*);
 
 /*
  * 内存索引节点(INode)的定义
@@ -77,7 +78,9 @@ public:
 	/*
 	 * @comment 根据Inode对象中的物理磁盘块索引表，将数据写入文件
 	 */
-	void WriteI();
+        inline void WriteI() {
+                Inode_write(this);
+        }
 	/*
 	 * @comment 将文件的逻辑块号转换成对应的物理盘块号
 	 */

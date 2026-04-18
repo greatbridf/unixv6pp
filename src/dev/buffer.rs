@@ -99,6 +99,10 @@ impl Buffer {
         self.as_slice::<u8>()
     }
 
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+        self.as_slice_mut::<u8>()
+    }
+
     pub fn phyblk(&self) -> PhysicalBlock {
         self.deref().b_blkno
     }
