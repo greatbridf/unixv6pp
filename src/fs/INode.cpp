@@ -587,30 +587,6 @@ void Inode::ITrunc()
 	this->i_nlink = 1;
 }
 
-void Inode::NFrele()
-{
-	/* 解锁pipe或Inode,并且唤醒相应进程 */
-	this->i_flag &= ~Inode::ILOCK;
-
-	if (this->i_flag & Inode::IWANT)
-	{
-		this->i_flag &= ~Inode::IWANT;
-		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)this);
-	}
-}
-
-void Inode::Prele()
-{
-	/* 解锁pipe或Inode,并且唤醒相应进程 */
-	this->i_flag &= ~Inode::ILOCK;
-
-	if (this->i_flag & Inode::IWANT)
-	{
-		this->i_flag &= ~Inode::IWANT;
-		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)this);
-	}
-}
-
 /*============================class DiskInode=================================*/
 
 DiskInode::DiskInode()

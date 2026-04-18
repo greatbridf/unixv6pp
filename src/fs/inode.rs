@@ -658,4 +658,8 @@ define_class_compat! {impl Inode {
         let this = unsafe { Spin::ref_from_inner(this) };
         Inode::lock_pipe(unsafe { &*this });
     }
+
+    pub fn release_lock(&mut self) {
+        this.unlock_and_wake();
+    }
 }}

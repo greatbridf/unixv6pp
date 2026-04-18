@@ -8,6 +8,7 @@ class Inode;
 extern "C" void Inode_clean(Inode*);
 extern "C" void Inode_file_lock(Inode*);
 extern "C" void Inode_pipe_lock(Inode*);
+extern "C" void Inode_release_lock(Inode*);
 
 /*
  * 内存索引节点(INode)的定义
@@ -102,7 +103,9 @@ public:
 	/*
 	 * @comment 对Pipe或者Inode解锁，并且唤醒因等待锁而睡眠的进程
 	 */
-	void Prele();
+        inline void Prele() {
+                Inode_release_lock(this);
+        }
 
 	/*
 	 * @comment 对Pipe上锁，如果Pipe已经被上锁，则增设IWANT标志并睡眠等待直至解锁
@@ -114,7 +117,9 @@ public:
 	/*
 	 * @comment 对Pipe或者Inode解锁，并且唤醒因等待锁而睡眠的进程
 	 */
-	void NFrele();
+        inline void NFrele() {
+                Inode_release_lock(this);
+        }
 
 	/*
 	 * @comment 对Pipe上锁，如果Pipe已经被上锁，则增设IWANT标志并睡眠等待直至解锁
