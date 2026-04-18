@@ -1,15 +1,14 @@
 use crate::{
-    dev::{
-        block_device::block_device_for_dev, buffer::{Buf, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO}, char_device::char_device_for_dev
-    },
-    fs::{
-        self, FileRef, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem
-    }, proc::{Channel, sleep, wakeup_all}, sync::SpinExt
+    constants::PosixError, dev::{
+        block_device::block_device_for_dev, buffer::{Buf, Buffer, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO, global_buffer_manager}, char_device::{char_device_for_dev, char_device_read}
+    }, fs::{
+        self, FileRef, IOParameter, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem
+    }, proc::{Channel, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 use alloc::sync::Arc;
 use bitflags::bitflags;
 use kernel_macros::define_class_compat;
-use core::fmt::Error;
+use core::ptr::NonNull;
 use eonix_spin::{NoContext, Spin, SpinGuard};
 
 bitflags! {
@@ -201,79 +200,79 @@ impl Inode {
         Arc::new(Spin::new(Self::new_const()))
     }
 
-    pub fn read_i(&mut self, m_count: usize, m_offset: usize) -> Result<(), Error> {
-        // TODO: user args
-        //let u = kernel::get_user();
+    pub fn read_i(
+        &mut self, m_count: usize, m_offset: usize
+    ) -> Result<(), PosixError> {
+        todo!()
+    }
 
-        if m_count == 0 {
-            return Ok(());
+    pub fn read(
+        &mut self, mut buffer: &mut [u8], mut offset: usize
+    ) -> Result<usize, PosixError> {
+        if buffer.len() == 0 {
+            return Ok(0);
         }
 
         self.i_flag |= InodeFlag::IACC;
 
         // char dev
         if (self.i_mode & InodeMode::IFMT) == InodeMode::IFCHR {
-            let dev = self.i_addr[0].0 as i16;
-            // TODO: dev manager
-            //kernel::get_device_manager()
-            //    .get_char_device(major)
-            //    .read(dev);
-            return Ok(());
+            let devid = self.i_addr[0].0 as i16;
+            char_device_read(devid);
+            return Ok(0);
         }
 
         let is_blk = (self.i_mode & InodeMode::IFMT) == InodeMode::IFBLK;
 
-        // TODO: user error
-        while
-        /*u.u_error == KernelError::NoError &&*/
-        m_count != 0 {
-            let lbn = m_offset / Self::BLOCK_SIZE;
-            let offset = m_offset % Self::BLOCK_SIZE;
-            let mut nbytes = (Self::BLOCK_SIZE - offset).min(m_count);
+        let mut nread = 0;
+        while Userspace::get().error.is_none() && buffer.len() != 0 {
+            let lbn = offset / Self::BLOCK_SIZE;
+            let inner_offset = offset % Self::BLOCK_SIZE;
+            let mut nbytes = (Self::BLOCK_SIZE - inner_offset).min(buffer.len());
 
-            let (dev, bn, rablock) = if !is_blk {
-                let remain = self.i_size.saturating_sub(m_offset as _);
+            let bn;
+            let mut dev = self.i_dev;
+            let mut rablock = None;
+
+            if !is_blk {
+                let remain = self.i_size.saturating_sub(offset as _);
                 if remain == 0 {
-                    return Ok(());
+                    return Ok(nread);
                 }
                 nbytes = nbytes.min(remain as usize);
 
-                // unsafe
-                let bmap_result = self.bmap(LogicalBlock(lbn as u32)).unwrap();
-                if bmap_result.phyblk == PhysicalBlock(0) {
-                    return Ok(());
-                }
-                let rablock = bmap_result.rablock.unwrap_or(PhysicalBlock(0));
-                (self.i_dev, bmap_result.phyblk, rablock)
+                let Some(blk) = self.get_blk(
+                    LogicalBlock(lbn as u32), &mut rablock) else {
+                    return Ok(nread);
+                };
+
+                bn = blk.phyblk();
             } else {
-                let dev = self.i_addr[0].0 as i16;
-                let bn = PhysicalBlock(lbn as u32);
-                let ra = PhysicalBlock(lbn as u32 + 1);
-                (DevId(dev), bn, ra)
+                bn = PhysicalBlock(lbn as u32);
+                dev = DevId(self.i_addr[0].0 as i16);
+                rablock = Some(PhysicalBlock(lbn as u32 + 1));
             };
 
-            // TODO: buffer manager
             let buf = if self.i_lastr + 1 == lbn as i32 {
-                //kernel::buf_breada(dev, bn, rablock)
+                global_buffer_manager().breada(dev, bn, rablock)?
             } else {
-                //kernel::buf_bread(dev, bn)
+                global_buffer_manager().bread(dev, bn)?
             };
 
             self.i_lastr = lbn as i32;
 
-            // TODO: user args and io move
-            /*let src = &buf.as_slice()[offset..offset + nbytes];
-            u.io_param.copy_to_user(src);
+            let data = &buf.as_bytes()[inner_offset..];
+            buffer[..nbytes].copy_from_slice(&data[..nbytes]);
 
-            u.io_param.m_base += nbytes;
-            u.io_param.m_offset += nbytes as u64;
-            u.io_param.m_count -= nbytes as u64;*/
+            buffer = &mut buffer[nbytes..];
+            offset += nbytes;
+            nread += nbytes;
         }
 
-        Ok(())
+        Ok(nread)
     }
 
-    pub fn write_i(&mut self, m_count: usize, m_offset: usize) -> Result<(), Error> {
+    pub fn write_i(&mut self, m_count: usize, m_offset: usize) -> Result<(), PosixError> {
         self.i_flag |= InodeFlag::IACC | InodeFlag::IUPD;
 
         // char device
@@ -296,13 +295,14 @@ impl Inode {
             let lbn = m_offset / Self::BLOCK_SIZE;
             let offset = m_offset % Self::BLOCK_SIZE;
             let nbytes = (Self::BLOCK_SIZE - offset).min(m_count);
+            let mut ra = None;
 
             let (_dev, _bn) = if !is_blk {
-                let result = self.bmap(LogicalBlock(lbn as u32)).unwrap();
-                if result.phyblk == PhysicalBlock(0) {
+                let result = self.get_blk(LogicalBlock(lbn as u32), &mut ra).unwrap();
+                if result.phyblk() == PhysicalBlock(0) {
                     return Ok(());
                 }
-                (self.i_dev, result.phyblk)
+                (self.i_dev, result.phyblk())
             } else {
                 (DevId(self.i_addr[0].0 as i16), PhysicalBlock(lbn as u32))
             };
@@ -336,63 +336,103 @@ impl Inode {
         Ok(())
     }
 
-    // map lbn to pbn
-    pub fn bmap(&mut self, lbn: LogicalBlock) -> Result<BmapResult, BmapError> {
-        let lbn = lbn.0 as usize;
-
-        match IndexKind::from_lbn(lbn)? {
-            // small
-            IndexKind::Direct { slot } => {
-                let phy = self.get_or_alloc_direct(slot)?;
-
-                let rablock = if slot <= 4 {
-                    let next = self.i_addr[slot + 1].0;
-                    if next != 0 {
-                        Some(PhysicalBlock(next))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-
-                Ok(BmapResult {
-                    phyblk: phy,
-                    rablock,
-                })
-            }
-
-            // large
-            IndexKind::Indirect {
-                i_addr_slot: _,
-                inner: _,
-            } => {
-                // TODO: wire BufferManager::bread/bdwrite before translating indirect blocks.
-                Err(BmapError::AllocFailed)
-            }
-
-            // huge
-            IndexKind::DoubleIndirect {
-                i_addr_slot: _,
-                mid: _,
-                inner: _,
-            } => {
-                // TODO: wire BufferManager::bread/bdwrite before translating double-indirect blocks.
-                Err(BmapError::AllocFailed)
-            }
+    /// Get the physical block ID of direct blocks.
+    fn get_direct(&mut self, slot: u32) -> Option<PhysicalBlock> {
+        match self.i_addr[slot as usize] {
+            PhysicalBlock::ZERO => None,
+            phyblk => Some(phyblk),
         }
     }
 
-    /// 直接索引：返回物理块号，为 0 则按需分配
-    fn get_or_alloc_direct(&mut self, slot: usize) -> Result<PhysicalBlock, BmapError> {
-        let phy = self.i_addr[slot];
-        if phy.0 != 0 {
-            return Ok(PhysicalBlock(phy.0));
+    fn alloc_blk(&mut self) -> Option<(PhysicalBlock, Buffer)> {
+        extern "C" {
+            fn compat_filesys_alloc(dev: DevId) -> Option<NonNull<Buf>>;
         }
-        let blkno = Self::alloc_block_from_fs(self.i_dev)?;
-        self.i_addr[slot] = blkno;
-        self.i_flag |= InodeFlag::IUPD;
-        Ok(blkno)
+
+        Some(unsafe {
+            let buf = Buffer::new(compat_filesys_alloc(self.i_dev)?.as_ptr());
+            assert_ne!(buf.phyblk(), PhysicalBlock::ZERO);
+            (buf.phyblk(), buf)
+        })
+    }
+
+    /// Get the buffer corresponding to some direct block.
+    /// Alloc a new one and store it to i_addr if possible if not exists.
+    /// Return `None`s only if allocation fails.
+    fn get_direct_blk(&mut self, slot: u32) -> Option<Buffer> {
+        if let Some(phyblk) = self.get_direct(slot) {
+            global_buffer_manager().bread(self.i_dev, phyblk).ok()
+        } else {
+            let (phyblk, buf) = self.alloc_blk()?;
+            self.i_flag.insert(InodeFlag::IUPD);
+            self.i_addr[slot as usize] = phyblk;
+            Some(buf)
+        }
+    }
+
+    fn get_indirect_blk(&mut self, slot: &mut u32) -> Option<Buffer> {
+        if let Some(phyblk) = PhysicalBlock::new(*slot) {
+            global_buffer_manager().bread(self.i_dev, phyblk).ok()
+        } else {
+            let (phyblk, buf) = self.alloc_blk()?;
+            self.i_flag.insert(InodeFlag::IUPD);
+            *slot = phyblk.0;
+            Some(buf)
+        }
+    }
+
+    fn get_blk(
+        &mut self, LogicalBlock(lbn): LogicalBlock, ra: &mut Option<PhysicalBlock>,
+    ) -> Option<Buffer> {
+        const LBN_SMALL: u32 = 6;
+        const LBN_SMALL_OFF: u32 = 6;
+        const LBN_LARGE: u32 = 262;
+        const LBN_LARGE_OFF: u32 = 8;
+        const INDIR_SLOTS: u32 = 128;
+        const INDIR2_SLOTS: u32 = INDIR_SLOTS * INDIR_SLOTS;
+
+        match lbn {
+            0..6 => {
+                let blk = self.get_direct_blk(lbn)?;
+
+                if lbn != 5 {
+                    *ra = PhysicalBlock::new(self.i_addr[lbn as usize + 1].0);
+                }
+
+                Some(blk)
+            }
+            6..262 => {
+                let indir_slot = LBN_SMALL_OFF + (lbn - LBN_SMALL) / INDIR_SLOTS;
+                let mut indir_blk = self.get_direct_blk(indir_slot)?;
+                let mut indir_table = indir_blk.as_slice_mut::<u32>();
+                let indir_idx = (lbn - LBN_SMALL) % INDIR_SLOTS;
+                let blk = self.get_indirect_blk(&mut indir_table[indir_idx as usize])?;
+
+                if indir_idx + 1 != INDIR_SLOTS {
+                    *ra = PhysicalBlock::new(indir_table[indir_idx as usize + 1]);
+                }
+
+                Some(blk)
+            }
+            262..33030 => {
+                let indir_slot = LBN_LARGE_OFF + (lbn - LBN_LARGE) / INDIR2_SLOTS;
+                let mut indir_blk = self.get_direct_blk(indir_slot)?;
+                let indir_table = indir_blk.as_slice_mut::<u32>();
+                let indir_idx = ((lbn - LBN_LARGE) / INDIR_SLOTS) % INDIR_SLOTS;
+
+                let mut indir2_blk = self.get_indirect_blk(&mut indir_table[indir_idx as usize])?;
+                let indir2_table = indir2_blk.as_slice_mut::<u32>();
+                let indir2_idx = (lbn - LBN_LARGE) % INDIR_SLOTS;
+                let blk = self.get_indirect_blk(&mut indir2_table[indir2_idx as usize])?;
+
+                if indir2_idx + 1 != INDIR_SLOTS {
+                    *ra = PhysicalBlock::new(indir2_table[indir2_idx as usize + 1]);
+                }
+
+                Some(blk)
+            }
+            _ => unimplemented!("huge files"),
+        }
     }
 
     fn alloc_block_from_fs(dev: DevId) -> Result<PhysicalBlock, BmapError> {
@@ -661,5 +701,26 @@ define_class_compat! {impl Inode {
 
     pub fn release_lock(&mut self) {
         this.unlock_and_wake();
+    }
+
+    pub fn read(&mut self) {
+        let IOParameter { m_base, m_count, m_offset } = Userspace::get().ioparam;
+
+        let buffer = unsafe {
+            core::slice::from_raw_parts_mut(
+                m_base as *mut u8,
+                m_count,
+            )
+        };
+
+        match this.read(buffer, m_offset) {
+            Err(err) => Userspace::get().error = Some(err),
+            Ok(nread) => {
+                let ioparam = &mut Userspace::get().ioparam;
+                ioparam.m_count -= nread;
+                ioparam.m_base += nread;
+                ioparam.m_offset += nread;
+            }
+        }
     }
 }}

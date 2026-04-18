@@ -8,99 +8,6 @@
 /*	预读块的块号，对普通文件这是预读块所在的物理块号。对硬盘而言，这是当前物理块（扇区）的下一个物理块（扇区）*/
 int Inode::rablock = 0;
 
-void Inode::ReadI()
-{
-	int lbn;	/* 文件逻辑块号 */
-	int bn;		/* lbn对应的物理盘块号 */
-	int offset;	/* 当前字符块内起始传送位置 */
-	int nbytes;	/* 传送至用户目标区字节数量 */
-	short dev;
-	Buf* pBuf;
-	User& u = Kernel::Instance().GetUser();
-	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
-	DeviceManager& devMgr = Kernel::Instance().GetDeviceManager();
-
-	if( 0 == User_get_IOParam().m_Count )
-	{
-		/* 需要读字节数为零，则返回 */
-		return;
-	}
-
-	this->i_flag |= Inode::IACC;
-
-	/* 如果是字符设备文件 ，调用外设读函数*/
-	if( (this->i_mode & Inode::IFMT) == Inode::IFCHR )
-	{
-		short major = Utility::GetMajor(this->i_addr[0]);
-
-		devMgr.GetCharDevice(major).Read(this->i_addr[0]);
-		return;
-	}
-
-	/* 一次一个字符块地读入所需全部数据，直至遇到文件尾 */
-	while( User::NOERROR == User_get_error() && User_get_IOParam().m_Count != 0)
-	{
-		lbn = bn = User_get_IOParam().m_Offset / Inode::BLOCK_SIZE;
-		offset = User_get_IOParam().m_Offset % Inode::BLOCK_SIZE;
-		/* 传送到用户区的字节数量，取读请求的剩余字节数与当前字符块内有效字节数较小值 */
-		nbytes = Utility::Min(Inode::BLOCK_SIZE - offset /* 块内有效字节数 */, User_get_IOParam().m_Count);
-
-		if( (this->i_mode & Inode::IFMT) != Inode::IFBLK )
-		{	/* 如果不是特殊块设备文件 */
-
-			int remain = this->i_size - User_get_IOParam().m_Offset;
-			/* 如果已读到超过文件结尾 */
-			if( remain <= 0)
-			{
-				return;
-			}
-			/* 传送的字节数量还取决于剩余文件的长度 */
-			nbytes = Utility::Min(nbytes, remain);
-
-			/* 将逻辑块号lbn转换成物理盘块号bn ，Bmap有设置Inode::rablock。当UNIX认为获取预读块的开销太大时，
-			 * 会放弃预读，此时 Inode::rablock 值为 0。
-			 * */
-			if( (bn = this->Bmap(lbn)) == 0 )
-			{
-				return;
-			}
-			dev = this->i_dev;
-		}
-		else	/* 如果是特殊块设备文件 */
-		{
-			dev = this->i_addr[0];	/* 特殊块设备文件i_addr[0]中存放的是设备号 */
-			Inode::rablock = bn + 1;
-		}
-
-		if( this->i_lastr + 1 == lbn )	/* 如果是顺序读，则进行预读 */
-		{
-			/* 读当前块，并预读下一块 */
-			pBuf = bufMgr.Breada(dev, bn, Inode::rablock);
-		}
-		else
-		{
-			pBuf = bufMgr.Bread(dev, bn);
-		}
-		/* 记录最近读取字符块的逻辑块号 */
-		this->i_lastr = lbn;
-
-		/* 缓存中数据起始读位置 */
-		unsigned char* start = pBuf->b_addr + offset;
-
-		/* 读操作: 从缓冲区拷贝到用户目标区
-		 * i386芯片用同一张页表映射用户空间和内核空间，这一点硬件上的差异 使得i386上实现 iomove操作
-		 * 比PDP-11要容易许多*/
-		Utility::IOMove(start, User_get_IOParam().m_Base, nbytes);
-
-		/* 用传送字节数nbytes更新读写位置 */
-		User_get_IOParam().m_Base += nbytes;
-		User_get_IOParam().m_Offset += nbytes;
-		User_get_IOParam().m_Count -= nbytes;
-
-		bufMgr.Brelse(pBuf);	/* 使用完缓存，释放该资源 */
-	}
-}
-
 void Inode::WriteI()
 {
 	int lbn;	/* 文件逻辑块号 */
@@ -205,6 +112,14 @@ void Inode::WriteI()
 		 */
 		this->i_flag |= Inode::IUPD;
 	}
+}
+
+extern "C" int compat_bmap(Inode* inode, int lbn) {
+        return inode->Bmap(lbn);
+}
+
+extern "C" Buf* compat_filesys_alloc(short dev) {
+        return Kernel::Instance().GetFileSystem().Alloc(dev);
 }
 
 int Inode::Bmap(int lbn)

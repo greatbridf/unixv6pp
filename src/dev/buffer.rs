@@ -32,6 +32,18 @@ bitflags! {
     }
 }
 
+impl PhysicalBlock {
+    pub const ZERO: Self = Self(0);
+
+    pub const fn new(blkid: u32) -> Option<Self> {
+        if blkid != 0 {
+            Some(Self(blkid))
+        } else {
+            None
+        }
+    }
+}
+
 /// [`Buffer`] holds a reference to the underlying buffer.
 ///
 /// Dropping the [`Buffer`] calls `bm.release(buf)`.
@@ -53,12 +65,42 @@ impl Buffer {
         unsafe { self.bp.as_ref() }
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn as_slice_mut<T: Copy>(&mut self) -> &mut [T] {
+        let buffer = self.deref();
+        let addr = buffer.b_addr as *mut T;
+        let len_in_bytes = buffer.b_wcount as usize;
+
+        assert!(addr.is_aligned(), "Unaligned pointer");
+        assert!(len_in_bytes % size_of::<T>() == 0, "Wrong type");
+
         unsafe {
-            core::slice::from_raw_parts(
-                self.deref().b_addr, self.deref().b_wcount as usize,
+            core::slice::from_raw_parts_mut(
+                addr as *mut T, len_in_bytes / size_of::<T>(),
             )
         }
+    }
+
+    pub fn as_slice<T: Copy>(&self) -> &[T] {
+        let buffer = self.deref();
+        let addr = buffer.b_addr as *mut T;
+        let len_in_bytes = buffer.b_wcount as usize;
+
+        assert!(addr.is_aligned(), "Unaligned pointer");
+        assert!(len_in_bytes % size_of::<T>() == 0, "Wrong type");
+
+        unsafe {
+            core::slice::from_raw_parts(
+                addr as *mut T, len_in_bytes / size_of::<T>(),
+            )
+        }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.as_slice::<u8>()
+    }
+
+    pub fn phyblk(&self) -> PhysicalBlock {
+        self.deref().b_blkno
     }
 
     pub fn into_raw(self) -> *mut Buf {

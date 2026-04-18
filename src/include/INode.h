@@ -9,6 +9,7 @@ extern "C" void Inode_clean(Inode*);
 extern "C" void Inode_file_lock(Inode*);
 extern "C" void Inode_pipe_lock(Inode*);
 extern "C" void Inode_release_lock(Inode*);
+extern "C" void Inode_read(Inode*);
 
 /*
  * 内存索引节点(INode)的定义
@@ -70,7 +71,9 @@ public:
 	 * @comment 根据Inode对象中的物理磁盘块索引表，读取相应
 	 * 的文件数据
 	 */
-	void ReadI();
+        inline void ReadI() {
+                Inode_read(this);
+        }
 	/*
 	 * @comment 根据Inode对象中的物理磁盘块索引表，将数据写入文件
 	 */

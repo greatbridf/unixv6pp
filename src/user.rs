@@ -105,7 +105,7 @@ pub struct Userspace {
     cwd_full: [u8; 128],
 
     /// Userspace error code
-    error: Option<PosixError>,
+    pub error: Option<PosixError>,
 
     uid: u16,
     gid: u16,

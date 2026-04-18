@@ -12,9 +12,10 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
+debug = true
 lto = true
 codegen-units = 1
-opt-level = 2
+opt-level = "s"
 
 [dependencies]
 buddy_allocator = { git = "https://github.com/project-eonix/buddy-allocator.git", version = "0.1.0" }
