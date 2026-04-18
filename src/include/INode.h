@@ -59,11 +59,6 @@ public:
 
 	/* Functions */
 public:
-	/* Constructors */
-	Inode();
-	/* Destructors */
-	~Inode();
-
 	/*
 	 * @comment 根据Inode对象中的物理磁盘块索引表，读取相应
 	 * 的文件数据
