@@ -451,20 +451,18 @@ impl Inode {
         Ok(buf.b_blkno)
     }
 
-    pub fn open_i(&self, mode: u32) -> Result<(), OpenError> {
+    pub fn open_i(&self, mode: u32) -> Result<(), PosixError> {
         let dev = self.i_addr[0].0 as i16;
 
         match self.i_mode & InodeMode::IFMT {
             InodeMode::IFCHR => {
-                let device = char_device_for_dev(dev).ok_or(OpenError::NoSuchDevice)?;
-                device
-                    .open(dev, mode as i32)
-                    .map_err(|_| OpenError::NoSuchDevice)?;
+                let device = char_device_for_dev(dev).ok_or(PosixError::ENXIO)?;
+                device.open(dev, mode as i32).map_err(|_| PosixError::ENXIO)?;
             }
             InodeMode::IFBLK => {
-                let device = block_device_for_dev(dev).ok_or(OpenError::NoSuchDevice)?;
+                let device = block_device_for_dev(dev).ok_or(PosixError::ENXIO)?;
                 if device.open(dev, mode as i32) < 0 {
-                    return Err(OpenError::NoSuchDevice);
+                    return Err(PosixError::ENXIO);
                 }
             }
             _ => {}
@@ -763,5 +761,15 @@ define_class_compat! {impl Inode {
 
     pub fn release(&mut self) {
         this.release();
+    }
+
+    pub fn open(&mut self, mode: u32) {
+        if let Err(err) = this.open_i(mode) {
+            Userspace::get().error = Some(err);
+        }
+    }
+
+    pub fn close(&mut self, mode: FileFlags) {
+        this.close_i(mode);
     }
 }}

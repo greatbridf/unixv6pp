@@ -154,7 +154,7 @@ impl FileManager {
             file_ref.f_inode = None;
             file_ref.f_count -= 1;
             fs::global_inode_table().i_put(inode);
-            return Err(Self::map_open_error(err));
+            return Err(err);
         }
 
         Ok((fd, file))
