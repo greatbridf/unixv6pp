@@ -772,4 +772,10 @@ define_class_compat! {impl Inode {
     pub fn close(&mut self, mode: FileFlags) {
         this.close_i(mode);
     }
+
+    pub fn bmap(&mut self, blkid: u32) -> PhysicalBlock {
+        let mut ra = None;
+        let buf = this.get_blk(LogicalBlock(blkid), &mut ra);
+        buf.map(|buf| buf.phyblk()).unwrap_or(PhysicalBlock::ZERO)
+    }
 }}

@@ -15,6 +15,7 @@ extern "C" void Inode_open(Inode*, int);
 extern "C" void Inode_close(Inode*, int);
 extern "C" void Inode_release(Inode*);
 extern "C" void Inode_update(Inode*, int);
+extern "C" int Inode_bmap(Inode*, int);
 
 /*
  * 内存索引节点(INode)的定义
@@ -88,7 +89,9 @@ public:
 	/*
 	 * @comment 将文件的逻辑块号转换成对应的物理盘块号
 	 */
-	int Bmap(int lbn);
+        inline int Bmap(int lbn) {
+                return Inode_bmap(this, lbn);
+        }
 
 	/*
 	 * @comment 对特殊字符设备、块设备文件，调用该设备注册在块设备开关表
