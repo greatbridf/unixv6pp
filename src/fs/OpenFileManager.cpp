@@ -21,11 +21,3 @@ File* f_alloc(struct open_file_table* oft) {
 void f_close(struct open_file_table* oft, File* file) {
         OpenFileTable_f_close(oft, file);
 }
-
-extern "C" void f_close_bottom2(File* pFile) {
-	if (!pFile->f_inode)
-		return;
-
-        pFile->f_inode->CloseI(pFile->f_flag & File::FWRITE);
-        InodeTable_put(pFile->f_inode);
-}

@@ -5,7 +5,7 @@ use crate::{
         char_device::char_device_for_dev,
     },
     fs::{
-        self, FileRef, InodeRef, file::{FileRefCompat, InodeRefCompat}, file_system::FileSystem
+        self, FileRef, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem
     }, proc::{Channel, wakeup_all}, sync::SpinExt
 };
 use alloc::sync::Arc;
@@ -425,7 +425,7 @@ impl Inode {
         Ok(())
     }
 
-    pub fn close_i(&self, mode: u32) {
+    pub fn close_i(&self, mode: FileFlags) {
         if self.i_count > 1 {
             return;
         }
@@ -435,12 +435,12 @@ impl Inode {
         match self.i_mode & InodeMode::IFMT {
             InodeMode::IFCHR => {
                 if let Some(device) = char_device_for_dev(dev) {
-                    let _ = device.close(dev, mode as i32);
+                    let _ = device.close(dev, mode.bits() as i32);
                 }
             }
             InodeMode::IFBLK => {
                 if let Some(device) = block_device_for_dev(dev) {
-                    let _ = device.close(dev, mode as i32);
+                    let _ = device.close(dev, mode.bits() as i32);
                 }
             }
             _ => {}

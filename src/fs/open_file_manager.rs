@@ -9,10 +9,6 @@ use crate::{
     }, proc::{Channel, PINOD, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 
-extern "C" {
-    fn f_close_bottom2(file: FileRefCompat);
-}
-
 define_class_compat! {impl OpenFileTable {
     pub fn f_alloc(&mut self) -> Option<FileRefCompat> {
         let open_files = &mut Userspace::get().open_files;
@@ -113,9 +109,9 @@ impl OpenFileTable {
         //     }
         // }
         if file.f_count <= 1 {
-            unsafe {
-                f_close_bottom2(FileRefCompat::new(&file));
-            }
+            let inode = file.f_inode.unwrap().own();
+            inode.lock().close_i(file.f_flag & FileFlags::FWRITE);
+            GLOBAL_INODE_TABLE.lock().i_put(inode);
         }
 
         file.f_count -= 1;
