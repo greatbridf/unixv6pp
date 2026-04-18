@@ -34,11 +34,11 @@ Mount::~Mount()
 	this->m_dev = -1;
 	this->m_inodep = NULL;
 	//释放内存SuperBlock副本
-	if(this->m_spb != NULL)
-	{
-		delete this->m_spb;
-		this->m_spb = NULL;
-	}
+	if(!this->m_spb)
+                return;
+
+        delete this->m_spb;
+        this->m_spb = NULL;
 }
 
 /*==============================class FileSystem===================================*/
@@ -74,9 +74,7 @@ void FileSystem::LoadSuperBlock()
 		bufMgr.Brelse(pBuf);
 	}
 	if (User::NOERROR != User_get_error())
-	{
                 Utility::Panic("Load SuperBlock Error....!\n");
-	}
 
 	this->m_Mount[0].m_dev = DeviceManager::ROOTDEV;
 	this->m_Mount[0].m_spb = &g_spb;
@@ -90,7 +88,7 @@ void FileSystem::LoadSuperBlock()
 SuperBlock* FileSystem::GetFS(short dev)
 {
 	SuperBlock* sb;
-	
+
 	/* 遍历系统装配块表，寻找设备号为dev的设备中文件系统的SuperBlock */
 	for(int i = 0; i < FileSystem::NMOUNT; i++)
 	{
@@ -223,11 +221,9 @@ Inode* FileSystem::IAlloc(short dev)
 
 				/* 该外存Inode已被占用，不能记入空闲Inode索引表 */
 				if(mode != 0)
-				{
 					continue;
-				}
 
-				/* 
+				/*
 				 * 如果外存inode的i_mode==0，此时并不能确定
 				 * 该inode是空闲的，因为有可能是内存inode没有写到
 				 * 磁盘上,所以要继续搜索内存inode中是否有相应的项
@@ -239,9 +235,7 @@ Inode* FileSystem::IAlloc(short dev)
 
 					/* 如果空闲索引表已经装满，则不继续搜索 */
 					if(sb->s_ninode >= 100)
-					{
 						break;
-					}
 				}
 			}
 
@@ -250,9 +244,7 @@ Inode* FileSystem::IAlloc(short dev)
 
 			/* 如果空闲索引表已经装满，则不继续搜索 */
 			if(sb->s_ninode >= 100)
-			{
 				break;
-			}
 		}
 		/* 解除对空闲外存Inode索引表的锁，唤醒因为等待锁而睡眠的进程 */
 		sb->s_ilock = 0;
@@ -279,13 +271,11 @@ Inode* FileSystem::IAlloc(short dev)
 		/* 将空闲Inode读入内存 */
 		pNode = InodeTable_get(dev, ino);
 		/* 未能分配到内存inode */
-		if(NULL == pNode)
-		{
+		if (!pNode)
 			return NULL;
-		}
 
 		/* 如果该Inode空闲,清空Inode中的数据 */
-		if(0 == pNode->i_mode)
+		if (0 == pNode->i_mode)
 		{
 			pNode->Clean();
 			/* 设置SuperBlock被修改标志 */
@@ -306,24 +296,20 @@ void FileSystem::IFree(short dev, int number)
 	SuperBlock* sb;
 
 	sb = this->GetFS(dev);	/* 获取相应设备的SuperBlock内存副本 */
-	
-	/* 
+
+	/*
 	 * 如果超级块直接管理的空闲Inode表上锁，
 	 * 则释放的外存Inode散落在磁盘Inode区中。
 	 */
 	if(sb->s_ilock)
-	{
 		return;
-	}
 
-	/* 
+	/*
 	 * 如果超级块直接管理的空闲外存Inode超过100个，
 	 * 同样让释放的外存Inode散落在磁盘Inode区中。
 	 */
 	if(sb->s_ninode >= 100)
-	{
 		return;
-	}
 
 	sb->s_inode[sb->s_ninode++] = number;
 
@@ -341,7 +327,7 @@ Buf* FileSystem::Alloc(short dev)
 	/* 获取SuperBlock对象的内存副本 */
 	sb = this->GetFS(dev);
 
-	/* 
+	/*
 	 * 如果空闲磁盘块索引表正在被上锁，表明有其它进程
 	 * 正在操作空闲磁盘块索引表，因而对其上锁。这通常
 	 * 是由于其余进程调用Free()或Alloc()造成的。
@@ -355,7 +341,7 @@ Buf* FileSystem::Alloc(short dev)
 	/* 从索引表“栈顶”获取空闲磁盘块编号 */
 	blkno = sb->s_free[--sb->s_nfree];
 
-	/* 
+	/*
 	 * 若获取磁盘块编号为零，则表示已分配尽所有的空闲磁盘块。
 	 * 或者分配到的空闲磁盘块编号不属于数据盘块区域中(由BadBlock()检查)，
 	 * 都意味着分配空闲磁盘块操作失败。
