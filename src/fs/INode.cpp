@@ -715,6 +715,10 @@ void Inode::ICopy(Buf *bp, int inumber)
 	}
 }
 
+extern "C" void inode_copy(Inode* inode, Buf* buf, int ino) {
+        inode->ICopy(buf, ino);
+}
+
 
 /*============================class DiskInode=================================*/
 

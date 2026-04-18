@@ -22,8 +22,6 @@ extern "C" struct open_file_table* OpenFileTable_alloc();
 void FileManager::Initialize()
 {
 	this->m_FileSystem = &Kernel::Instance().GetFileSystem();
-
-	this->m_InodeTable = &g_InodeTable;
 	this->m_OpenFileTable = OpenFileTable_alloc();
 }
 
@@ -125,7 +123,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 
 	if ( User_get_error() )
 	{
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 
@@ -146,7 +144,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 	File* pFile = f_alloc(this->m_OpenFileTable);
 	if ( NULL == pFile )
 	{
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 	/* 设置打开文件方式，建立File结构和内存Inode的勾连关系 */
@@ -171,7 +169,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 			/* 递减File结构和Inode的引用计数 ,File结构没有锁 f_count为0就是释放File结构了*/
 			pFile->f_count--;
 		}
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 	}
 }
 
@@ -286,7 +284,7 @@ void FileManager::Stat()
 		return;
 	}
 	this->Stat1(pInode, User_get_arg()[1]);
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 }
 
 void FileManager::Stat1(Inode* pInode, unsigned long statBuf)
@@ -398,7 +396,7 @@ void FileManager::Pipe()
 	pFileRead = f_alloc(this->m_OpenFileTable);
 	if ( NULL == pFileRead )
 	{
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 	/* 读管道的打开文件描述符 */
@@ -410,7 +408,7 @@ void FileManager::Pipe()
 	{
 		pFileRead->f_count = 0;
 		OpenFiles_set_file(fd[0], NULL);
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 
@@ -555,7 +553,7 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 	}
 
 	/* 检查该Inode是否正在被使用，以及保证在整个目录搜索过程中该Inode不被释放 */
-	this->m_InodeTable->IGet(pInode->i_dev, pInode->i_number);
+	InodeTable_get(pInode->i_dev, pInode->i_number);
 
 	/* 允许出现////a//b 这种路径 这种路径等价于/a/b */
 	while ( '/' == curchar )
@@ -755,8 +753,8 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 		 * 目录项m_ino字段获取相应下一级目录或文件的Inode。
 		 */
 		short dev = pInode->i_dev;
-		this->m_InodeTable->IPut(pInode);
-		pInode = this->m_InodeTable->IGet(dev, User_get_dent().m_ino);
+		InodeTable_put(pInode);
+		pInode = InodeTable_get(dev, User_get_dent().m_ino);
 		/* 回到外层While(true)循环，继续匹配Pathname中下一路径分量 */
 
 		if ( NULL == pInode )	/* 获取失败 */
@@ -765,7 +763,7 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 		}
 	}
 out:
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 	return NULL;
 }
 
@@ -824,7 +822,7 @@ void FileManager::WriteDir( Inode* pInode )
 
 	/* 将目录项写入父目录文件 */
 	User_get_pdir()->WriteI();
-	this->m_InodeTable->IPut(User_get_pdir());
+	InodeTable_put(User_get_pdir());
 }
 
 void FileManager::SetCurDir(char* pathname)
@@ -909,7 +907,7 @@ Inode* FileManager::Owner()
 		return pInode;
 	}
 
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 	return NULL;
 }
 
@@ -929,7 +927,7 @@ void FileManager::ChMod()
 	pInode->i_mode |= (mode & 0xFFF);
 	pInode->i_flag |= Inode::IUPD;
 
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 	return;
 }
 
@@ -949,7 +947,7 @@ void FileManager::ChOwn()
 	pInode->i_gid = gid;
 	pInode->i_flag |= Inode::IUPD;
 
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 }
 
 void FileManager::ChDir()
@@ -966,15 +964,15 @@ void FileManager::ChDir()
 	if ( (pInode->i_mode & Inode::IFMT) != Inode::IFDIR )
 	{
 		User_get_error() = User::ENOTDIR;
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 	if ( this->Access(pInode, Inode::IEXEC) )
 	{
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
-	this->m_InodeTable->IPut(User_get_cdir());
+	InodeTable_put(User_get_cdir());
 	User_get_cdir() = pInode;
 	pInode->Prele();
 
@@ -998,14 +996,14 @@ void FileManager::Link()
 	{
 		User_get_error() = User::EMLINK;
 		/* 出错，释放资源并退出 */
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 	/* 对目录文件的链接只能由超级用户进行 */
 	if ( (pInode->i_mode & Inode::IFMT) == Inode::IFDIR && !Userspace_is_root() )
 	{
 		/* 出错，释放资源并退出 */
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 
@@ -1018,28 +1016,28 @@ void FileManager::Link()
 	if ( NULL != pNewInode )
 	{
 		User_get_error() = User::EEXIST;
-		this->m_InodeTable->IPut(pNewInode);
+		InodeTable_put(pNewInode);
 	}
 	if ( User::NOERROR != User_get_error() )
 	{
 		/* 出错，释放资源并退出 */
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 	/* 检查目录与该文件是否在同一个设备上 */
 	if ( User_get_pdir()->i_dev != pInode->i_dev )
 	{
-		this->m_InodeTable->IPut(User_get_pdir());
+		InodeTable_put(User_get_pdir());
 		User_get_error() = User::EXDEV;
 		/* 出错，释放资源并退出 */
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		return;
 	}
 
 	this->WriteDir(pInode);
 	pInode->i_nlink++;
 	pInode->i_flag |= Inode::IUPD;
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 }
 
 void FileManager::UnLink()
@@ -1055,7 +1053,7 @@ void FileManager::UnLink()
 	}
 	pDeleteInode->Prele();
 
-	pInode = this->m_InodeTable->IGet(pDeleteInode->i_dev, User_get_dent().m_ino);
+	pInode = InodeTable_get(pDeleteInode->i_dev, User_get_dent().m_ino);
 	if ( NULL == pInode )
 	{
 		Utility::Panic("unlink -- iget");
@@ -1063,8 +1061,8 @@ void FileManager::UnLink()
 	/* 只有root可以unlink目录文件 */
 	if ( (pInode->i_mode & Inode::IFMT) == Inode::IFDIR && !Userspace_is_root() )
 	{
-		this->m_InodeTable->IPut(pDeleteInode);
-		this->m_InodeTable->IPut(pInode);
+		InodeTable_put(pDeleteInode);
+		InodeTable_put(pInode);
 		return;
 	}
 	/* 写入清零后的目录项 */
@@ -1079,8 +1077,8 @@ void FileManager::UnLink()
 	pInode->i_nlink--;
 	pInode->i_flag |= Inode::IUPD;
 
-	this->m_InodeTable->IPut(pDeleteInode);
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pDeleteInode);
+	InodeTable_put(pInode);
 }
 
 void FileManager::MkNod()
@@ -1096,7 +1094,7 @@ void FileManager::MkNod()
 		if ( pInode != NULL )
 		{
 			User_get_error() = User::EEXIST;
-			this->m_InodeTable->IPut(pInode);
+			InodeTable_put(pInode);
 			return;
 		}
 	}
@@ -1121,7 +1119,7 @@ void FileManager::MkNod()
 	{
 		pInode->i_addr[0] = User_get_arg()[2];
 	}
-	this->m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 }
 /*==========================class DirectoryEntry===============================*/
 DirectoryEntry::DirectoryEntry()

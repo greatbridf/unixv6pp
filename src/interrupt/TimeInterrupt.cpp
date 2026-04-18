@@ -29,7 +29,7 @@ void Time::TimeInterruptEntrance()
 		while(true)
 		{
 			X86Assembly::CLI();	/* 处理机优先级升为7级 */
-			
+
 			if(Kernel::Instance().GetProcessManager().RunRun > 0)
 			{
 				X86Assembly::STI();	/* 处理机优先级降为0级 */
@@ -111,7 +111,7 @@ void Time::Clock( struct pt_regs* regs, struct pt_context* context )
 			if ( pProcess->p_stat != Process::SNULL )
 			{
 				pProcess->p_time = Utility::Min(++pProcess->p_time, 127);
-				
+
 				if ( pProcess->p_cpu > SCHMAG )
 				{
 					pProcess->p_cpu -= SCHMAG;
@@ -129,7 +129,7 @@ void Time::Clock( struct pt_regs* regs, struct pt_context* context )
 		}
 		//Diagnose::Write("curpri = %d\n", procMgr.CurPri);
 		//Diagnose::Write("System Time: %d\n", Time::time);
-		
+
 		if ( procMgr.RunIn != 0 )
 		{
 			procMgr.RunIn = 0;
@@ -147,4 +147,8 @@ void Time::Clock( struct pt_regs* regs, struct pt_context* context )
 			current->SetPri();
 		}
 	}
+}
+
+extern "C" unsigned int get_time() {
+        return Time::time;
 }

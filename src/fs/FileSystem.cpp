@@ -144,7 +144,7 @@ void FileSystem::Update()
 			/* 写入SuperBlock最后存访时间 */
 			sb->s_time = Time::time;
 
-			/* 
+			/*
 			 * 为将要写回到磁盘上去的SuperBlock申请一块缓存，由于缓存块大小为512字节，
 			 * SuperBlock大小为1024字节，占据2个连续的扇区，所以需要2次写入操作。
 			 */
@@ -164,9 +164,9 @@ void FileSystem::Update()
 			}
 		}
 	}
-	
+
 	/* 同步修改过的内存Inode到对应外存Inode */
-	g_InodeTable.UpdateInodeTable();
+        InodeTable_update();
 
 	/* 清除Update()函数锁 */
 	this->updlock = 0;
@@ -257,7 +257,7 @@ Inode* FileSystem::IAlloc(short dev)
 		/* 解除对空闲外存Inode索引表的锁，唤醒因为等待锁而睡眠的进程 */
 		sb->s_ilock = 0;
 		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_ilock);
-		
+
 		/* 如果在磁盘上没有搜索到任何可用外存Inode，返回NULL */
 		if(sb->s_ninode <= 0)
 		{
@@ -267,7 +267,7 @@ Inode* FileSystem::IAlloc(short dev)
 		}
 	}
 
-	/* 
+	/*
 	 * 上面部分已经保证，除非系统中没有可用外存Inode，
 	 * 否则空闲Inode索引表中必定会记录可用外存Inode的编号。
 	 */
@@ -277,7 +277,7 @@ Inode* FileSystem::IAlloc(short dev)
 		ino = sb->s_inode[--sb->s_ninode];
 
 		/* 将空闲Inode读入内存 */
-		pNode = g_InodeTable.IGet(dev, ino);
+		pNode = InodeTable_get(dev, ino);
 		/* 未能分配到内存inode */
 		if(NULL == pNode)
 		{
@@ -294,7 +294,7 @@ Inode* FileSystem::IAlloc(short dev)
 		}
 		else	/* 如果该Inode已被占用 */
 		{
-			g_InodeTable.IPut(pNode);
+			InodeTable_put(pNode);
 			continue;	/* while循环 */
 		}
 	}

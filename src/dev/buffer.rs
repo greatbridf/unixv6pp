@@ -29,6 +29,7 @@ bitflags! {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Buf {
     pub b_flags: BufFlag,
     pub padding: i32,

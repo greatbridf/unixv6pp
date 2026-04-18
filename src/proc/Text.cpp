@@ -33,7 +33,7 @@ void Text::XFree()
 	if ( --this->x_count == 0 )
 	{
 		Kernel::Instance().GetSwapperManager().FreeSwap(this->x_size, this->x_daddr);
-		Kernel::Instance().GetFileManager().m_InodeTable->IPut(this->x_iptr);
+		InodeTable_put(this->x_iptr);
 		this->x_iptr = NULL;
 	}
 }

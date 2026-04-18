@@ -313,11 +313,11 @@ extern "C" void next()
 	FileManager& fileMgr = Kernel::Instance().GetFileManager();
 
 	//fileMgr.rootDirInode = g_InodeTable.IGet(DeviceManager::ROOTDEV, FileSystem::ROOTINO);
-	fileMgr.rootDirInode = g_InodeTable.IGet(DeviceManager::ROOTDEV, 1);
+	fileMgr.rootDirInode = InodeTable_get(DeviceManager::ROOTDEV, 1);
 	fileMgr.rootDirInode->i_flag &= (~Inode::ILOCK);
 
 	User& us = Kernel::Instance().GetUser();
-	User_get_cdir() = g_InodeTable.IGet(DeviceManager::ROOTDEV, 1);
+	User_get_cdir() = InodeTable_get(DeviceManager::ROOTDEV, 1);
 	//us.u_cdir = g_InodeTable.IGet(DeviceManager::ROOTDEV, FileSystem::ROOTINO);
 	User_get_cdir()->i_flag &= (~Inode::ILOCK);
 

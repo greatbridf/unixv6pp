@@ -503,7 +503,7 @@ void ProcessManager::Exec()
 	/* 进程必需拥有可执行文件的执行权限，且被执行的只能是一般文件。 */
 	if ( fileMgr.Access(pInode, Inode::IEXEC) || (pInode->i_mode & Inode::IFMT) != 0 )
 	{
-		fileMgr.m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		if ( this->ExeCnt >= NEXEC )
 		{
 			WakeUpAll((unsigned long)&ExeCnt);
@@ -514,7 +514,7 @@ void ProcessManager::Exec()
 
         struct pe_parser* parser = PEParser_new();
         if (!PEParser_load_header(parser, pInode)) {
-                fileMgr.m_InodeTable->IPut(pInode);
+                InodeTable_put(pInode);
                 PEParser_free(parser);
                 return;
         }
@@ -539,7 +539,7 @@ void ProcessManager::Exec()
 
 	if ( textSize + dataSize + stackSize  + PAGE_SIZE > MemoryDescriptor::USER_SPACE_SIZE - textAddr)
 	{
-		fileMgr.m_InodeTable->IPut(pInode);
+		InodeTable_put(pInode);
 		User_get_error() = User::ENOMEM;
                 PEParser_free(parser);
 		return;
@@ -707,7 +707,7 @@ void ProcessManager::Exec()
 //	}
 
 	/* 释放Inode，减少ExeCnt计数值 */
-	fileMgr.m_InodeTable->IPut(pInode);
+	InodeTable_put(pInode);
 	if ( this->ExeCnt >= NEXEC )
 	{
 		WakeUpAll((unsigned long)&ExeCnt);

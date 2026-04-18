@@ -2,7 +2,6 @@
 ///
 /// Used by sleep and wakeup family functions.
 pub trait Channel: Sized {
-    #[inline(always)]
     fn channel_addr(&self) -> usize;
 }
 
@@ -13,9 +12,16 @@ impl<T> Channel for &T {
     }
 }
 
+impl Channel for usize {
+    #[inline(always)]
+    fn channel_addr(&self) -> usize {
+        *self
+    }
+}
+
 extern "C" {
     fn _wakeup_all(channel_addr: usize);
-    fn _sleep(channel_addr: usize);
+    fn _sleep(channel_addr: usize, pri: u32);
 }
 
 pub fn wakeup_all(channel: impl Channel) {
@@ -24,8 +30,10 @@ pub fn wakeup_all(channel: impl Channel) {
     }
 }
 
-pub fn sleep(channel: impl Channel) {
+pub const PINOD: u32 = -90i32 as u32;
+
+pub fn sleep(channel: impl Channel, pri: u32) {
     unsafe {
-        _sleep(channel.channel_addr());
+        _sleep(channel.channel_addr(), pri);
     }
 }

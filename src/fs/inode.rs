@@ -68,6 +68,7 @@ bitflags! {
 const I_ADDR_SIZE: usize = 10;
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Inode {
     pub i_flag: InodeFlag, // 状态标志位
     pub i_mode: InodeMode, // 文件工作方式信息
@@ -154,7 +155,7 @@ pub fn inoderef_leak(inode_ref: InodeRef) -> InodeRefCompat {
     let inoderef_compat = unsafe {
         // SAFETY: Leaking the Inode is always safe.
         //         Just make sure we don't leak too much...
-        InodeRefCompat::new(&inode_ref)
+        InodeRefCompat::new(&inode_ref.lock())
     };
 
     core::mem::forget(inode_ref);

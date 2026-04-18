@@ -35,11 +35,8 @@ impl InodeRefCompat {
     /// # Safety
     /// The created InodeRefCompat holds **NO REFCOUNTS**. The caller MUST
     /// manage the lifetime manually.
-    pub unsafe fn new(inode: &Spin<Inode>) -> Self {
-        let inode = inode.lock();
-        let inode_ref = &*inode;
-
-        Self(NonNull::from_ref(inode_ref))
+    pub unsafe fn new(inode: &Inode) -> Self {
+        Self(NonNull::from_ref(inode))
     }
 
     pub fn own(&self) -> InodeRef {

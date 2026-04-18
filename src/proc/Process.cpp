@@ -67,6 +67,10 @@ bool Process::IsSleepOn(unsigned long chan)
 	return false;
 }
 
+extern "C" void _sleep(unsigned long chan, int pri) {
+        User_get_procp()->Sleep(chan, pri);
+}
+
 void Process::Sleep(unsigned long chan, int pri)
 {
 	User& u = Kernel::Instance().GetUser();
@@ -187,7 +191,6 @@ void Process::Exit()
 	int i;
 	User& u = Kernel::Instance().GetUser();
 	ProcessManager& procMgr = Kernel::Instance().GetProcessManager();
-	InodeTable& inodeTable = *Kernel::Instance().GetFileManager().m_InodeTable;
 
 	Diagnose::Write("Process %d is exiting\n",User_get_procp()->p_pid);
 	/* Reset Tracing flag */
@@ -213,7 +216,7 @@ void Process::Exit()
 	User_get_error() = User::NOERROR;
 
 	/* 递减当前目录的引用计数 */
-	inodeTable.IPut(User_get_cdir());
+	InodeTable_put(User_get_cdir());
 
 	/* 释放该进程对共享正文段的引用 */
 	if ( User_get_procp()->p_textp != NULL )
