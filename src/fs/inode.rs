@@ -500,19 +500,26 @@ impl Inode {
             return;
         }
 
-        if fs::global_file_system()
-            .get_fs(self.i_dev)
-            .is_ok_and(|spb| spb.lock().is_readonly())
-        {
+        extern "C" {
+            fn compat_fs_readonly(dev: DevId) -> bool;
+        }
+
+        if (unsafe { compat_fs_readonly(self.i_dev) }) {
             return;
         }
 
-        let _sector = FileSystem::INODE_ZONE_START_SECTOR
-            + self.i_number as usize / FileSystem::INODE_NUMBER_PER_SECTOR;
+        // if fs::global_file_system()
+        //     .get_fs(self.i_dev)
+        //     .is_ok_and(|spb| spb.lock().is_readonly())
+        // {
+        //     return;
+        // }
 
-        //let mut buf = kernel::buf_bread(self.i_dev, PhysicalBlock(sector as u32));
+        let sector = PhysicalBlock(FileSystem::INODE_ZONE_START_SECTOR as u32
+            + self.i_number as u32 / FileSystem::INODE_NUMBER_PER_SECTOR as u32);
+        let mut buf = global_buffer_manager().bread(self.i_dev, sector).unwrap();
 
-        let _d_inode = DiskInode {
+        let disk_inode = DiskInode {
             d_mode: self.i_mode,
             d_nlink: self.i_nlink,
             d_uid: self.i_uid,
@@ -531,19 +538,10 @@ impl Inode {
             },
         };
 
-        let _offset =
-            (self.i_number as usize % FileSystem::INODE_NUMBER_PER_SECTOR) * size_of::<DiskInode>();
-        //let dst = &mut buf.as_slice_mut()[offset..offset + size_of::<DiskInode>()];
-        //let src = unsafe {
-        //    slice::from_raw_parts(
-        //        &d_inode as *const DiskInode as *const u8,
-        //        size_of::<DiskInode>(),
-        //    )
-        //};
-        //dst.copy_from_slice(src);
+        let offset = self.i_number as usize % FileSystem::INODE_NUMBER_PER_SECTOR;
+        buf.as_slice_mut()[offset] = disk_inode;
 
-        // TODO: buffer manager
-        //kernel::buf_bwrite(buf);
+        global_buffer_manager().bwrite(buf.into_raw()).unwrap();
     }
 
     pub fn i_trunc(&mut self) {
@@ -752,5 +750,9 @@ define_class_compat! {impl Inode {
                 ioparam.m_offset += nwrite;
             }
         }
+    }
+
+    pub fn update(&mut self, time: i32) {
+        this.i_update(time);
     }
 }}

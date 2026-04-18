@@ -11,6 +11,7 @@ extern "C" void Inode_pipe_lock(Inode*);
 extern "C" void Inode_release_lock(Inode*);
 extern "C" void Inode_read(Inode*);
 extern "C" void Inode_write(Inode*);
+extern "C" void Inode_update(Inode*, int);
 
 /*
  * 内存索引节点(INode)的定义
@@ -100,7 +101,9 @@ public:
 	/*
 	 * @comment 更新外存Inode的最后的访问时间、修改时间
 	 */
-	void IUpdate(int time);
+        inline void IUpdate(int time) {
+                Inode_update(this, time);
+        }
 	/*
 	 * @comment 释放Inode对应文件占用的磁盘块
 	 */

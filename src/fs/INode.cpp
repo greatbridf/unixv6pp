@@ -253,59 +253,8 @@ void Inode::CloseI(int mode)
 	}
 }
 
-void Inode::IUpdate(int time)
-{
-	Buf* pBuf;
-	DiskInode dInode;
-	FileSystem& filesys = Kernel::Instance().GetFileSystem();
-	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
-
-	/* 当IUPD和IACC标志之一被设置，才需要更新相应DiskInode
-	 * 目录搜索，不会设置所途径的目录文件的IACC和IUPD标志 */
-	if( (this->i_flag & (Inode::IUPD | Inode::IACC))!= 0 )
-	{
-		if( filesys.GetFS(this->i_dev)->s_ronly != 0 )
-		{
-			/* 如果该文件系统只读 */
-			return;
-		}
-
-		/* 邓蓉的注释：在缓存池中找到包含本i节点（this->i_number）的缓存块
-		 * 这是一个上锁的缓存块，本段代码中的Bwrite()在将缓存块写回磁盘后会释放该缓存块。
-		 * 将该存放该DiskInode的字符块读入缓冲区 */
-		pBuf = bufMgr.Bread(this->i_dev, fs::INODE_SECTOR_OFF + this->i_number / FileSystem::INODE_NUMBER_PER_SECTOR);
-
-		/* 将内存Inode副本中的信息复制到dInode中，然后将dInode覆盖缓存中旧的外存Inode */
-		dInode.d_mode = this->i_mode;
-		dInode.d_nlink = this->i_nlink;
-		dInode.d_uid = this->i_uid;
-		dInode.d_gid = this->i_gid;
-		dInode.d_size = this->i_size;
-		for (int i = 0; i < 10; i++)
-		{
-			dInode.d_addr[i] = this->i_addr[i];
-		}
-		if (this->i_flag & Inode::IACC)
-		{
-			/* 更新最后访问时间 */
-			dInode.d_atime = time;
-		}
-		if (this->i_flag & Inode::IUPD)
-		{
-			/* 更新最后访问时间 */
-			dInode.d_mtime = time;
-		}
-
-		/* 将p指向缓存区中旧外存Inode的偏移位置 */
-		unsigned char* p = pBuf->b_addr + (this->i_number % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
-		DiskInode* pNode = &dInode;
-
-		/* 用dInode中的新数据覆盖缓存中的旧外存Inode */
-		Utility::DWordCopy( (int *)pNode, (int *)p, sizeof(DiskInode)/sizeof(int) );
-
-		/* 将缓存写回至磁盘，达到更新旧外存Inode的目的 */
-		bufMgr.Bwrite(pBuf);
-	}
+extern "C" bool compat_fs_readonly(short dev) {
+        return !!Kernel::Instance().GetFileSystem().GetFS(dev)->s_ronly;
 }
 
 void Inode::ITrunc()
