@@ -6,7 +6,7 @@ use crate::{
     },
     fs::{
         self, FileRef, InodeRef, file::{FileRefCompat, InodeRefCompat}, file_system::FileSystem
-    }, proc::Channel, sync::SpinExt
+    }, proc::{Channel, wakeup_all}, sync::SpinExt
 };
 use alloc::sync::Arc;
 use bitflags::bitflags;
@@ -546,8 +546,7 @@ impl Inode {
         self.i_flag.remove(InodeFlag::ILOCK);
         if self.i_flag.contains(InodeFlag::IWANT) {
             self.i_flag.remove(InodeFlag::IWANT);
-            // TODO: wake up
-            //kernel::get_process_manager().wake_up_all(self as *mut _ as usize);
+            wakeup_all(&*self);
         }
     }
 
