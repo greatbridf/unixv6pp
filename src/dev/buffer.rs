@@ -1,5 +1,9 @@
+use core::ptr::NonNull;
+
 use alloc::slice;
 use bitflags::bitflags;
+
+use crate::dev::buffer_manager::global_buffer_manager;
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -10,7 +14,7 @@ pub struct DevId(pub i16);
 pub struct LogicalBlock(pub u32);
 
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PhysicalBlock(pub u32);
 
 bitflags! {
@@ -25,6 +29,46 @@ bitflags! {
         const B_WANTED = 0x20; // 有进程等待该缓存，清B_BUSY时需唤醒
         const B_ASYNC  = 0x40; // 异步I/O，不需等待结束
         const B_DELWRI = 0x80; // 延迟写
+    }
+}
+
+/// [`Buffer`] holds a reference to the underlying buffer.
+///
+/// Dropping the [`Buffer`] calls `bm.release(buf)`.
+pub struct Buffer {
+    bp: NonNull<Buf>,
+}
+
+unsafe impl Send for Buffer {}
+unsafe impl Sync for Buffer {}
+
+impl Buffer {
+    pub const unsafe fn new(bp: *mut Buf) -> Self {
+        Self {
+            bp: NonNull::new_unchecked(bp),
+        }
+    }
+
+    fn deref(&self) -> &Buf {
+        unsafe { self.bp.as_ref() }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe {
+            core::slice::from_raw_parts(
+                self.deref().b_addr, self.deref().b_wcount as usize,
+            )
+        }
+    }
+
+    pub fn into_raw(self) -> *mut Buf {
+        self.bp.as_ptr()
+    }
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        global_buffer_manager().brelse(self.bp.as_ptr());
     }
 }
 

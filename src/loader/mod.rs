@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use eonix_mm::paging::PAGE_SIZE;
 use kernel_macros::define_class_compat;
 
-use crate::{compat::{compat_flush_page_directory, compat_inode_read, compat_user_pt}, fs::InodeRefCompat};
+use crate::{Ext, compat::{compat_flush_page_directory, compat_inode_read, compat_user_pt}, fs::InodeRefCompat};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
@@ -81,32 +81,6 @@ pub struct PEParser {
     pe_addr: usize,
     nt_header: Option<Box<NTHeader>>,
     section_headers: Option<Box<[SectionHeader]>>,
-}
-
-trait Ext {
-    fn as_buffer(&mut self) -> &mut [u8];
-}
-
-impl<T> Ext for T where T: Copy {
-    fn as_buffer(&mut self) -> &mut [u8] {
-        unsafe {
-            core::slice::from_raw_parts_mut(
-                self as *mut Self as *mut u8,
-                core::mem::size_of::<Self>(),
-            )
-        }
-    }
-}
-
-impl<T> Ext for [T] where T: Copy {
-    fn as_buffer(&mut self) -> &mut [u8] {
-        unsafe {
-            core::slice::from_raw_parts_mut(
-                self as *mut Self as *mut u8,
-                self.len() * core::mem::size_of::<T>(),
-            )
-        }
-    }
 }
 
 const PA_RW: usize = 1 << 1;

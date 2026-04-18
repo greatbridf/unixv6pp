@@ -660,32 +660,6 @@ void Inode::Clean()
 	}
 }
 
-void Inode::ICopy(Buf *bp, int inumber)
-{
-	DiskInode dInode;
-
-	/* 将p指向缓存区中编号为inumber外存Inode的偏移位置 */
-	unsigned char* p = bp->b_addr + (inumber % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
-	/* 将缓存中外存Inode数据拷贝到临时变量dInode中，按4字节拷贝 */
-	Utility::DWordCopy( (int *)p, (int *) &dInode, sizeof(DiskInode)/sizeof(int) );
-
-	/* 将外存Inode变量dInode中信息复制到内存Inode中 */
-	this->i_mode = dInode.d_mode;
-	this->i_nlink = dInode.d_nlink;
-	this->i_uid = dInode.d_uid;
-	this->i_gid = dInode.d_gid;
-	this->i_size = dInode.d_size;
-	for(int i = 0; i < 10; i++)
-	{
-		this->i_addr[i] = dInode.d_addr[i];
-	}
-}
-
-extern "C" void inode_copy(Inode* inode, Buf* buf, int ino) {
-        inode->ICopy(buf, ino);
-}
-
-
 /*============================class DiskInode=================================*/
 
 DiskInode::DiskInode()

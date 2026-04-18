@@ -1,8 +1,7 @@
-use crate::{dev::buffer::Buf, fs::InodeRefCompat, user::Userspace};
+use crate::{fs::InodeRefCompat, user::Userspace};
 
 extern "C" {
     fn inode_read(inode: InodeRefCompat);
-    fn inode_copy(inode: InodeRefCompat, buf: *mut Buf, ino: i32);
 }
 
 // Assume that reads will never fail...
@@ -30,12 +29,6 @@ pub fn compat_flush_page_directory() {
 pub fn compat_user_pt() -> &'static mut [usize; 2048] {
     unsafe {
         &mut *(0xc0202000 as *mut [usize; 2048])
-    }
-}
-
-pub fn compat_inode_copy(inode: InodeRefCompat, buf: *mut Buf, ino: i32) {
-    unsafe {
-        inode_copy(inode, buf, ino)
     }
 }
 

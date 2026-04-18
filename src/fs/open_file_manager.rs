@@ -4,8 +4,8 @@ use eonix_sync_base::LazyLock;
 use kernel_macros::define_class_compat;
 
 use crate::{
-    compat::{compat_get_time, compat_inode_copy}, constants::PosixError, dev::{buffer::{DevId, PhysicalBlock}, buffer_manager::global_buffer_manager}, fs::{
-        self, FileRef, InodeRef, file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles}, file_system::FileSystem, inode::{Inode, InodeFlag, InodeMode, fileref_leak, inoderef_leak}
+    Ext, compat::{compat_get_time}, constants::PosixError, dev::{buffer::{Buffer, DevId, PhysicalBlock}, buffer_manager::global_buffer_manager}, fs::{
+        self, FileRef, InodeRef, file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles}, file_system::FileSystem, inode::{DiskInode, Inode, InodeFlag, InodeMode, fileref_leak, inoderef_leak}
     }, proc::{Channel, PINOD, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 
@@ -135,6 +135,24 @@ impl InodeTable {
         }
     }
 
+    fn ino_blkoff(ino: i32) -> usize {
+        (ino as usize % FileSystem::INODE_NUMBER_PER_SECTOR) * size_of::<DiskInode>()
+    }
+
+    fn icopy(inode: &mut Inode, buf: Buffer, ino: i32) {
+        let mut disk_inode = DiskInode::default();
+        let data = &buf.as_bytes()[Self::ino_blkoff(ino)..];
+
+        disk_inode.as_buffer().copy_from_slice(&data[..size_of::<DiskInode>()]);
+
+        inode.i_mode = disk_inode.d_mode;
+        inode.i_nlink = disk_inode.d_nlink;
+        inode.i_uid = disk_inode.d_uid;
+        inode.i_gid = disk_inode.d_gid;
+        inode.i_size = disk_inode.d_size;
+        inode.i_addr = disk_inode.d_addr;
+    }
+
     pub fn i_get(&mut self, dev: DevId, ino: i32) -> Result<InodeRef, PosixError> {
         loop {
             let Some(iref) = self.get(dev, ino) else {
@@ -143,9 +161,7 @@ impl InodeTable {
                     + ino as u32 / FileSystem::INODE_NUMBER_PER_SECTOR as u32;
 
                 let buf = global_buffer_manager().bread(dev, PhysicalBlock(sector))?;
-                compat_inode_copy(inoderef_leak(iref.clone()), buf, ino);
-
-                global_buffer_manager().brelse(buf);
+                Self::icopy(&mut *iref.lock(), buf, ino);
                 return Ok(iref);
             };
 

@@ -32,7 +32,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub struct InodeMode: u32 {
         /// 文件被使用
         const IALLOC = 0x8000;
@@ -621,6 +621,7 @@ impl Inode {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
 pub struct DiskInode {
     pub d_mode: InodeMode,
     pub d_nlink: i32,

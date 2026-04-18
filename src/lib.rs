@@ -18,6 +18,32 @@ mod vesa;
 
 use core::panic::PanicInfo;
 
+pub trait Ext {
+    fn as_buffer(&mut self) -> &mut [u8];
+}
+
+impl<T> Ext for T where T: Copy {
+    fn as_buffer(&mut self) -> &mut [u8] {
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                self as *mut Self as *mut u8,
+                core::mem::size_of::<Self>(),
+            )
+        }
+    }
+}
+
+impl<T> Ext for [T] where T: Copy {
+    fn as_buffer(&mut self) -> &mut [u8] {
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                self as *mut Self as *mut u8,
+                self.len() * core::mem::size_of::<T>(),
+            )
+        }
+    }
+}
+
 #[panic_handler]
 fn panic(info: &PanicInfo<'_>) -> ! {
     let msg = info.message();
