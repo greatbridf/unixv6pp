@@ -545,41 +545,63 @@ impl Inode {
     }
 
     pub fn i_trunc(&mut self) {
+        todo!()
+    }
+
+    fn release_blk(&self, blk: PhysicalBlock) {
+        if blk == PhysicalBlock::ZERO {
+            return;
+        }
+
+        unsafe {
+            extern "C" {
+                fn compat_filesys_free(dev: DevId, blk: PhysicalBlock);
+            }
+
+            compat_filesys_free(self.i_dev, blk);
+        }
+    }
+
+    fn release_table(&self, table_blk: PhysicalBlock, level: usize) {
+        if table_blk == PhysicalBlock::ZERO {
+            return;
+        }
+
+        let buf = global_buffer_manager().bread(self.i_dev, table_blk).unwrap();
+        let table = &buf.as_slice::<PhysicalBlock>()[..128];
+
+        for blk in table.iter().cloned() {
+            if blk == PhysicalBlock::ZERO {
+                continue;
+            }
+
+            if level > 1 {
+                self.release_table(blk, level - 1);
+            }
+
+            self.release_blk(blk);
+        }
+
+        drop(buf);
+        self.release_blk(table_blk);
+    }
+
+    pub fn release(&mut self) {
         if self.i_mode.intersects(InodeMode::IFCHR | InodeMode::IFBLK) {
             return;
         }
 
-        for i in (0..10).rev() {
-            let blk = self.i_addr[i];
-            if blk == PhysicalBlock(0) {
-                continue;
+        let addrs = core::mem::take(&mut self.i_addr);
+
+        // Release all the blocks in a FILO way to make Superblock free
+        // blocks adjacent to each other.
+        for (idx, blk) in addrs.into_iter().enumerate().rev() {
+            match idx {
+                0..=5 => self.release_blk(blk),
+                6..=7 => self.release_table(blk, 1),
+                8..=9 => self.release_table(blk, 2),
+                _ => unreachable!(),
             }
-
-            if i >= 6 {
-                // TODO: buffer manager
-                //let first_buf = kernel::buf_bread(self.i_dev, blk);
-                //let first_table = *first_buf.read_table();
-
-                //for j in (0..128).rev() {
-                //    if first_table[j] == 0 {
-                //        continue;
-                //    }
-                //    if i >= 8 {
-                //        let second_buf =
-                //            kernel::buf_bread(self.i_dev, PhysicalBlock(first_table[j] as u32));
-                //        for k in (0..128).rev() {
-                //            let b = second_buf.read_table()[k];
-                //            if b != 0 {
-                //                let _ = fs::global_file_system().free(self.i_dev, b);
-                //            }
-                //        }
-                //    }
-                //    let _ = fs::global_file_system().free(self.i_dev, first_table[j]);
-                //}
-            }
-
-            let _ = fs::global_file_system().free(self.i_dev, blk.0 as i32);
-            self.i_addr[i] = PhysicalBlock(0);
         }
 
         self.i_size = 0;
@@ -737,5 +759,9 @@ define_class_compat! {impl Inode {
 
     pub fn update(&mut self, time: i32) {
         this.i_update(time);
+    }
+
+    pub fn release(&mut self) {
+        this.release();
     }
 }}

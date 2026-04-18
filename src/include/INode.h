@@ -11,6 +11,7 @@ extern "C" void Inode_pipe_lock(Inode*);
 extern "C" void Inode_release_lock(Inode*);
 extern "C" void Inode_read(Inode*);
 extern "C" void Inode_write(Inode*);
+extern "C" void Inode_release(Inode*);
 extern "C" void Inode_update(Inode*, int);
 
 /*
@@ -107,7 +108,9 @@ public:
 	/*
 	 * @comment 释放Inode对应文件占用的磁盘块
 	 */
-	void ITrunc();
+        inline void ITrunc() {
+                Inode_release(this);
+        }
 
 	/*
 	 * @comment 对Pipe或者Inode解锁，并且唤醒因等待锁而睡眠的进程
