@@ -47,7 +47,7 @@ void Inode::ReadI()
 
 		if( (this->i_mode & Inode::IFMT) != Inode::IFBLK )
 		{	/* 如果不是特殊块设备文件 */
-		
+
 			int remain = this->i_size - User_get_IOParam().m_Offset;
 			/* 如果已读到超过文件结尾 */
 			if( remain <= 0)
@@ -86,7 +86,7 @@ void Inode::ReadI()
 
 		/* 缓存中数据起始读位置 */
 		unsigned char* start = pBuf->b_addr + offset;
-		
+
 		/* 读操作: 从缓冲区拷贝到用户目标区
 		 * i386芯片用同一张页表映射用户空间和内核空间，这一点硬件上的差异 使得i386上实现 iomove操作
 		 * 比PDP-11要容易许多*/
@@ -195,7 +195,7 @@ void Inode::WriteI()
 			this->i_size = User_get_IOParam().m_Offset;
 		}
 
-		/* 
+		/*
 		 * 之前过程中读盘可能导致进程切换，在进程睡眠期间当前内存Inode可能
 		 * 被同步到外存Inode，在此需要重新设置更新标志位。
 		 * 好像没有必要呀！即使write系统调用没有上锁，iput看到i_count减到0之后才会将内存i节点同步回磁盘。而这在
@@ -217,11 +217,11 @@ int Inode::Bmap(int lbn)
 	User& u = Kernel::Instance().GetUser();
 	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 	FileSystem& fileSys = Kernel::Instance().GetFileSystem();
-	
-	/* 
+
+	/*
 	 * Unix V6++的文件索引结构：(小型、大型和巨型文件)
 	 * (1) i_addr[0] - i_addr[5]为直接索引表，文件长度范围是0 - 6个盘块；
-	 * 
+	 *
 	 * (2) i_addr[6] - i_addr[7]存放一次间接索引表所在磁盘块号，每磁盘块
 	 * 上存放128个文件数据盘块号，此类文件长度范围是7 - (128 * 2 + 6)个盘块；
 	 *
@@ -240,7 +240,7 @@ int Inode::Bmap(int lbn)
 	{
 		phyBlkno = this->i_addr[lbn];
 
-		/* 
+		/*
 		 * 如果该逻辑块号还没有相应的物理盘块号与之对应，则分配一个物理块。
 		 * 这通常发生在对文件的写入，当写入位置超出文件大小，即对当前
 		 * 文件进行扩充写入，就需要分配额外的磁盘块，并为之建立逻辑块号
@@ -248,7 +248,7 @@ int Inode::Bmap(int lbn)
 		 */
 		if( phyBlkno == 0 && (pFirstBuf = fileSys.Alloc(this->i_dev)) != NULL )
 		{
-			/* 
+			/*
 			 * 因为后面很可能马上还要用到此处新分配的数据块，所以不急于立刻输出到
 			 * 磁盘上；而是将缓存标记为延迟写方式，这样可以减少系统的I/O操作。
 			 */
@@ -262,7 +262,7 @@ int Inode::Bmap(int lbn)
 		Inode::rablock = 0;
 		if(lbn <= 4)
 		{
-			/* 
+			/*
 			 * i_addr[0] - i_addr[5]为直接索引表。如果预读块对应物理块号可以从
 			 * 直接索引表中获得，则记录在Inode::rablock中。如果需要额外的I/O开销
 			 * 读入间接索引块，就显得不太值得了。漂亮！
@@ -308,7 +308,7 @@ int Inode::Bmap(int lbn)
 
 		if(index >= 8)	/* ASSERT: 8 <= index <= 9 */
 		{
-			/* 
+			/*
 			 * 对于巨型文件的情况，pFirstBuf中是二次间接索引表，
 			 * 还需根据逻辑块号，经由二次间接索引表找到一次间接索引表
 			 */
@@ -382,7 +382,7 @@ void Inode::OpenI(int mode)
 	DeviceManager& devMgr = Kernel::Instance().GetDeviceManager();
 	User& u = Kernel::Instance().GetUser();
 
-	/* 
+	/*
 	 * 对于特殊块设备、字符设备文件，i_addr[]不再是
 	 * 磁盘块号索引表，addr[0]中存放了设备号dev
 	 */
@@ -517,10 +517,10 @@ void Inode::ITrunc()
 	}
 
 	/* 采用FILO方式释放，以尽量使得SuperBlock中记录的空闲盘块号连续。
-	 * 
+	 *
 	 * Unix V6++的文件索引结构：(小型、大型和巨型文件)
 	 * (1) i_addr[0] - i_addr[5]为直接索引表，文件长度范围是0 - 6个盘块；
-	 * 
+	 *
 	 * (2) i_addr[6] - i_addr[7]存放一次间接索引表所在磁盘块号，每磁盘块
 	 * 上存放128个文件数据盘块号，此类文件长度范围是7 - (128 * 2 + 6)个盘块；
 	 *
@@ -546,7 +546,7 @@ void Inode::ITrunc()
 				{
 					if( pFirst[j] != 0)	/* 如果该项存在索引 */
 					{
-						/* 
+						/*
 						 * 如果是两次间接索引表，i_addr[8]或i_addr[9]项，
 						 * 那么该字符块记录的是128个一次间接索引表存放的磁盘块号
 						 */
@@ -577,7 +577,7 @@ void Inode::ITrunc()
 			this->i_addr[i] = 0;
 		}
 	}
-	
+
 	/* 盘块释放完毕，文件大小清零 */
 	this->i_size = 0;
 	/* 增设IUPD标志位，表示此内存Inode需要同步到相应外存Inode */
@@ -637,7 +637,7 @@ void Inode::Plock()
 
 void Inode::Clean()
 {
-	/* 
+	/*
 	 * Inode::Clean()特定用于IAlloc()中清空新分配DiskInode的原有数据，
 	 * 即旧文件信息。Clean()函数中不应当清除i_dev, i_number, i_flag, i_count,
 	 * 这是属于内存Inode而非DiskInode包含的旧文件信息，而Inode类构造函数需要
@@ -690,7 +690,7 @@ extern "C" void inode_copy(Inode* inode, Buf* buf, int ino) {
 
 DiskInode::DiskInode()
 {
-	/* 
+	/*
 	 * 如果DiskInode没有构造函数，会发生如下较难察觉的错误：
 	 * DiskInode作为局部变量占据函数Stack Frame中的内存空间，但是
 	 * 这段空间没有被正确初始化，仍旧保留着先前栈内容，由于并不是
