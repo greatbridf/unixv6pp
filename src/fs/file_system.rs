@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{array, ptr};
+use core::{array, ffi::c_void, ptr};
 use eonix_spin::Spin;
 
 use bitflags::bitflags;
@@ -67,13 +67,6 @@ pub struct CppSuperBlock {
     s_ronly: i32,
     s_time: i32,
     padding: [i32; 47],
-}
-
-#[repr(C)]
-pub struct CppMount {
-    m_dev: i16,
-    m_spb: *mut CppSuperBlock,
-    m_inodep: Option<InodeRefCompat>,
 }
 
 impl SuperBlock {
@@ -301,29 +294,6 @@ impl FileSystem {
             FileSystemError::InodeUnavailable => PosixError::ENFILE,
             _ => PosixError::EIO,
         }
-    }
-
-    fn get_cpp_fs(mount: *mut CppMount, dev: DevId) -> *mut CppSuperBlock {
-        if mount.is_null() {
-            return ptr::null_mut();
-        }
-
-        for i in 0..FileSystem::NMOUNT {
-            let mount = unsafe { &mut *mount.add(i) };
-            if mount.m_spb.is_null() || mount.m_dev != dev.0 {
-                continue;
-            }
-
-            let spb = unsafe { &mut *mount.m_spb };
-            if spb.s_nfree > 100 || spb.s_ninode > 100 {
-                spb.s_nfree = 0;
-                spb.s_ninode = 0;
-            }
-
-            return mount.m_spb;
-        }
-
-        ptr::null_mut()
     }
 
     pub fn new() -> Self {
@@ -610,305 +580,74 @@ impl FileSystem {
 }
 
 define_class_compat! {impl FileSystem {
-    pub fn load_super_block(mount: *mut CppMount, super_block: *mut CppSuperBlock) -> bool {
-        if mount.is_null() || super_block.is_null() {
+    pub fn load_super_block() -> bool {
+        fs::global_file_system().load_super_block().is_ok()
+    }
+
+    pub fn get_fs(dev: DevId, super_block: *mut CppSuperBlock) -> bool {
+        if super_block.is_null() {
             return false;
         }
 
-        let time = compat_get_time() as i32;
-        let Ok(mut loaded_super_block) = FileSystem::read_super_block() else {
+        let Ok(spb) = fs::global_file_system().get_fs(dev) else {
             return false;
         };
 
-        loaded_super_block.s_flock = 0;
-        loaded_super_block.s_ilock = 0;
-        loaded_super_block.s_ronly = 0;
-        loaded_super_block.s_time = time;
-
-        fs::global_file_system().install_loaded_super_block(&loaded_super_block, time);
-
         unsafe {
-            super_block.write(loaded_super_block);
-
-            (*mount).m_dev = ROOTDEV;
-            (*mount).m_spb = super_block;
+            super_block.write(spb.lock().to_cpp());
         }
 
         true
     }
 
-    pub fn get_fs(mount: *mut CppMount, dev: DevId) -> *mut CppSuperBlock {
-        FileSystem::get_cpp_fs(mount, dev)
-    }
-
-    pub fn update(mount: *mut CppMount, updlock: *mut i32) {
-        if mount.is_null() || updlock.is_null() {
-            return;
-        }
-
-        unsafe {
-            if *updlock != 0 {
-                return;
-            }
-
-            *updlock += 1;
-        }
-
-        let time = compat_get_time() as i32;
-
-        for i in 0..FileSystem::NMOUNT {
-            let mount = unsafe { &mut *mount.add(i) };
-            if mount.m_spb.is_null() {
-                continue;
-            }
-
-            let spb = unsafe { &mut *mount.m_spb };
-            if spb.s_fmod == 0 || spb.s_ilock != 0 || spb.s_flock != 0 || spb.s_ronly != 0 {
-                continue;
-            }
-
-            spb.s_fmod = 0;
-            spb.s_time = time;
-
-            let _ = FileSystem::write_super_block(DevId(mount.m_dev), spb);
-        }
-
-        fs::global_inode_table().update_inode_table();
-
-        unsafe {
-            *updlock = 0;
-        }
-
-        let _ = global_buffer_manager().bflush(None);
-    }
-
-    pub fn i_alloc(mount: *mut CppMount, dev: DevId) -> Option<InodeRefCompat> {
-        let spb = FileSystem::get_cpp_fs(mount, dev);
-        if spb.is_null() {
+    pub fn is_readonly(dev: DevId) -> bool {
+        let Ok(spb) = fs::global_file_system().get_fs(dev) else {
             Userspace::get().set_error(PosixError::EIO);
-            return None;
-        }
+            return true;
+        };
 
-        let spb = unsafe { &mut *spb };
-        let ilock_addr = (&raw const spb.s_ilock) as usize;
+        let readonly = {
+            let sb = spb.lock();
+            sb.is_readonly()
+        };
+        readonly
+    }
 
-        while spb.s_ilock != 0 {
-            sleep(ilock_addr, PINOD);
-        }
+    pub fn update() {
+        fs::global_file_system().update();
+    }
 
-        if spb.s_ninode <= 0 {
-            spb.s_ilock += 1;
-
-            let refill_result = FileSystem::scan_free_inodes(dev, spb.s_isize);
-
-            spb.s_ilock = 0;
-            wakeup_all(ilock_addr);
-
-            let (ninode, inode) = match refill_result {
-                Ok(result) => result,
-                Err(err) => {
-                    Userspace::get().set_error(FileSystem::map_error_to_posix(err));
-                    return None;
-                }
-            };
-
-            spb.s_ninode = ninode;
-            spb.s_inode = inode;
-
-            if spb.s_ninode <= 0 {
-                Userspace::get().set_error(PosixError::ENOSPC);
-                return None;
+    pub fn i_alloc(dev: DevId) -> Option<InodeRefCompat> {
+        match fs::global_file_system().i_alloc(dev) {
+            Ok(inode) => Some(inoderef_leak(inode)),
+            Err(err) => {
+                Userspace::get().set_error(FileSystem::map_error_to_posix(err));
+                None
             }
-        }
-
-        loop {
-            if spb.s_ninode <= 0 {
-                Userspace::get().set_error(PosixError::ENOSPC);
-                return None;
-            }
-
-            spb.s_ninode -= 1;
-            let ino = spb.s_inode[spb.s_ninode as usize];
-
-            let inode = match fs::global_inode_table().i_get(dev, ino) {
-                Ok(inode) => inode,
-                Err(err) => {
-                    Userspace::get().set_error(err);
-                    return None;
-                }
-            };
-
-            if inode.lock().i_mode.is_empty() {
-                inode.lock().clean();
-                spb.s_fmod = 1;
-                return Some(inoderef_leak(inode));
-            }
-
-            fs::global_inode_table().i_put(inode);
         }
     }
 
-    pub fn i_free(mount: *mut CppMount, dev: DevId, number: i32) {
-        let spb = FileSystem::get_cpp_fs(mount, dev);
-        if spb.is_null() {
-            return;
-        }
-
-        let spb = unsafe { &mut *spb };
-        if spb.s_ilock != 0 || spb.s_ninode >= 100 {
-            return;
-        }
-
-        spb.s_inode[spb.s_ninode as usize] = number;
-        spb.s_ninode += 1;
-        spb.s_fmod = 1;
+    pub fn i_free(dev: DevId, number: i32) {
+        let _ = fs::global_file_system().i_free(dev, number);
     }
 
-    pub fn alloc(mount: *mut CppMount, dev: DevId) -> *mut Buf {
-        let spb = FileSystem::get_cpp_fs(mount, dev);
-        if spb.is_null() {
-            Userspace::get().set_error(PosixError::EIO);
-            return ptr::null_mut();
-        }
-
-        let spb = unsafe { &mut *spb };
-        let flock_addr = (&raw const spb.s_flock) as usize;
-
-        while spb.s_flock != 0 {
-            sleep(flock_addr, PINOD);
-        }
-
-        if spb.s_nfree <= 0 {
-            Userspace::get().set_error(PosixError::ENOSPC);
-            return ptr::null_mut();
-        }
-
-        spb.s_nfree -= 1;
-        let blkno = spb.s_free[spb.s_nfree as usize];
-
-        if blkno == 0 {
-            spb.s_nfree = 0;
-            Userspace::get().set_error(PosixError::ENOSPC);
-            return ptr::null_mut();
-        }
-
-        if spb.s_nfree <= 0 {
-            spb.s_flock += 1;
-
-            let refill_result = global_buffer_manager()
-                .bread(dev, PhysicalBlock(blkno as u32))
-                .map(|buf| {
-                    let table = buf.as_slice::<i32>();
-                    spb.s_nfree = table[0];
-                    spb.s_free.copy_from_slice(&table[1..101]);
-                });
-
-            spb.s_flock = 0;
-            wakeup_all(flock_addr);
-
-            if refill_result.is_err() {
-                Userspace::get().set_error(PosixError::EIO);
-                return ptr::null_mut();
-            }
-        }
-
-        let buf = match global_buffer_manager().get_blk(dev, PhysicalBlock(blkno as u32)) {
+    pub fn alloc(dev: DevId) -> *mut Buf {
+        match fs::global_file_system().alloc(dev) {
             Ok(buf) => buf,
-            Err(_) => {
-                Userspace::get().set_error(PosixError::EIO);
-                return ptr::null_mut();
+            Err(err) => {
+                Userspace::get().set_error(FileSystem::map_error_to_posix(err));
+                ptr::null_mut()
             }
-        };
-
-        global_buffer_manager().clr_buf(buf);
-        spb.s_fmod = 1;
-        buf
+        }
     }
 
-    pub fn free(mount: *mut CppMount, dev: DevId, blkno: i32) {
-        let spb = FileSystem::get_cpp_fs(mount, dev);
-        if spb.is_null() {
-            Userspace::get().set_error(PosixError::EIO);
-            return;
+    pub fn free(dev: DevId, blkno: i32) {
+        if let Err(err) = fs::global_file_system().free(dev, blkno) {
+            Userspace::get().set_error(FileSystem::map_error_to_posix(err));
         }
-
-        let spb = unsafe { &mut *spb };
-        spb.s_fmod = 1;
-
-        let flock_addr = (&raw const spb.s_flock) as usize;
-        while spb.s_flock != 0 {
-            sleep(flock_addr, PINOD);
-        }
-
-        if spb.s_nfree <= 0 {
-            spb.s_nfree = 1;
-            spb.s_free[0] = 0;
-        }
-
-        if spb.s_nfree >= 100 {
-            spb.s_flock += 1;
-
-            let buf = match global_buffer_manager().get_blk(dev, PhysicalBlock(blkno as u32)) {
-                Ok(buf) => buf,
-                Err(_) => {
-                    spb.s_flock = 0;
-                    wakeup_all(flock_addr);
-                    Userspace::get().set_error(PosixError::EIO);
-                    return;
-                }
-            };
-
-            unsafe {
-                let table = core::slice::from_raw_parts_mut((*buf).b_addr as *mut i32, 101);
-                table[0] = spb.s_nfree;
-                table[1..101].copy_from_slice(&spb.s_free);
-            }
-
-            spb.s_nfree = 0;
-
-            if global_buffer_manager().bwrite(buf).is_err() {
-                Userspace::get().set_error(PosixError::EIO);
-            }
-
-            spb.s_flock = 0;
-            wakeup_all(flock_addr);
-        }
-
-        spb.s_free[spb.s_nfree as usize] = blkno;
-        spb.s_nfree += 1;
-        spb.s_fmod = 1;
     }
 
-    pub fn get_mount(mount: *mut CppMount, inode: Option<InodeRefCompat>) -> *mut CppMount {
-        if mount.is_null() {
-            return ptr::null_mut();
-        }
-
-        let Some(inode) = inode else {
-            return ptr::null_mut();
-        };
-
-        let inode = {
-            let inode = inode.lock();
-            (&*inode) as *const Inode
-        };
-
-        for i in 0..FileSystem::NMOUNT {
-            let mount = unsafe { &mut *mount.add(i) };
-            let Some(mount_inode) = mount.m_inodep else {
-                continue;
-            };
-
-            let mount_inode = {
-                let mount_inode = mount_inode.lock();
-                (&*mount_inode) as *const Inode
-            };
-
-            if mount_inode == inode {
-                return mount;
-            }
-        }
-
+    pub fn get_mount(_inode: Option<InodeRefCompat>) -> *mut c_void {
         ptr::null_mut()
     }
 }}

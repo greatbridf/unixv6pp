@@ -6,7 +6,7 @@ extern "C" Buf* compat_filesys_alloc(short dev) {
 }
 
 extern "C" bool compat_fs_readonly(short dev) {
-        return !!Kernel::Instance().GetFileSystem().GetFS(dev)->s_ronly;
+        return Kernel::Instance().GetFileSystem().IsReadOnly(dev);
 }
 
 extern "C" void compat_filesys_free(short dev, int blkno) {

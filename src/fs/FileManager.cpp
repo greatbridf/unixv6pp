@@ -852,7 +852,7 @@ int FileManager::Access( Inode* pInode, unsigned int mode )
 	/* 对于写的权限，必须检查该文件系统是否是只读的 */
 	if ( Inode::IWRITE == mode )
 	{
-		if( this->m_FileSystem->GetFS(pInode->i_dev)->s_ronly != 0 )
+		if( this->m_FileSystem->IsReadOnly(pInode->i_dev) )
 		{
 			User_get_error() = User::EROFS;
 			return 1;

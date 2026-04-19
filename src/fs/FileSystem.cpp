@@ -7,14 +7,15 @@
 #include "Video.h"
 #include "fs_defines.h"
 
-extern "C" bool FileSystem_load_super_block(Mount*, SuperBlock*);
-extern "C" SuperBlock* FileSystem_get_fs(Mount*, short);
-extern "C" void FileSystem_update(Mount*, int*);
-extern "C" Inode* FileSystem_i_alloc(Mount*, short);
-extern "C" void FileSystem_i_free(Mount*, short, int);
-extern "C" Buf* FileSystem_alloc(Mount*, short);
-extern "C" void FileSystem_free(Mount*, short, int);
-extern "C" Mount* FileSystem_get_mount(Mount*, Inode*);
+extern "C" bool FileSystem_load_super_block();
+extern "C" bool FileSystem_get_fs(short, SuperBlock*);
+extern "C" bool FileSystem_is_readonly(short);
+extern "C" void FileSystem_update();
+extern "C" Inode* FileSystem_i_alloc(short);
+extern "C" void FileSystem_i_free(short, int);
+extern "C" Buf* FileSystem_alloc(short);
+extern "C" void FileSystem_free(short, int);
+extern "C" Mount* FileSystem_get_mount(Inode*);
 
 /*==============================class SuperBlock===================================*/
 /* 系统全局超级块SuperBlock对象 */
@@ -63,57 +64,57 @@ FileSystem::~FileSystem()
 
 void FileSystem::Initialize()
 {
-	this->updlock = 0;
+	//nothing to do here
 }
 
 void FileSystem::LoadSuperBlock()
 {
-	if (!FileSystem_load_super_block(&this->m_Mount[0], &g_spb))
+	if (!FileSystem_load_super_block())
                 Utility::Panic("Load SuperBlock Error....!\n");
 }
 
 SuperBlock* FileSystem::GetFS(short dev)
 {
-	SuperBlock* sb = FileSystem_get_fs(&this->m_Mount[0], dev);
-	if(sb != NULL)
-		return sb;
+	if(FileSystem_get_fs(dev, &g_spb))
+                return &g_spb;
 
 	Utility::Panic("No File System!");
 	return NULL;
 }
 
+bool FileSystem::IsReadOnly(short dev)
+{
+        return FileSystem_is_readonly(dev);
+}
+
 void FileSystem::Update()
 {
-	FileSystem_update(&this->m_Mount[0], &this->updlock);
+	FileSystem_update();
 }
 
 Inode* FileSystem::IAlloc(short dev)
 {
-	this->GetFS(dev);
-	return FileSystem_i_alloc(&this->m_Mount[0], dev);
+	return FileSystem_i_alloc(dev);
 }
 
 void FileSystem::IFree(short dev, int number)
 {
-	this->GetFS(dev);
-	FileSystem_i_free(&this->m_Mount[0], dev, number);
+	FileSystem_i_free(dev, number);
 }
 
 Buf* FileSystem::Alloc(short dev)
 {
-	this->GetFS(dev);
-	return FileSystem_alloc(&this->m_Mount[0], dev);
+	return FileSystem_alloc(dev);
 }
 
 void FileSystem::Free(short dev, int blkno)
 {
-	this->GetFS(dev);
-	FileSystem_free(&this->m_Mount[0], dev, blkno);
+	FileSystem_free(dev, blkno);
 }
 
 Mount* FileSystem::GetMount(Inode *pInode)
 {
-	return FileSystem_get_mount(&this->m_Mount[0], pInode);
+	return FileSystem_get_mount(pInode);
 }
 
 bool FileSystem::BadBlock(SuperBlock *spb, short dev, int blkno)
