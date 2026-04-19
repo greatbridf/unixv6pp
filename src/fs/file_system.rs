@@ -1,12 +1,17 @@
 use alloc::sync::Arc;
-use core::array;
+use core::{array, ptr};
 use eonix_spin::Spin;
 
 use bitflags::bitflags;
+use kernel_macros::define_class_compat;
 
 use crate::{
-    dev::buffer::{Buf, DevId}, fs::{
-        self, InodeRef, SuperBlockRef, inode::Inode
+    compat::compat_get_time, dev::{
+        buffer::{Buf, DevId, PhysicalBlock},
+        buffer_manager::global_buffer_manager,
+        device_manager::ROOTDEV,
+    }, fs::{
+        self, InodeRef, InodeRefCompat, SuperBlockRef, inode::Inode
     }, sync::SpinExt
 };
 
@@ -47,6 +52,30 @@ pub struct SuperBlock {
     padding: [i32; 50],
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CppSuperBlock {
+    s_isize: i32,
+    s_fsize: i32,
+    s_nfree: i32,
+    s_free: [i32; 100],
+    s_ninode: i32,
+    s_inode: [i32; 100],
+    s_flock: i32,
+    s_ilock: i32,
+    s_fmod: i32,
+    s_ronly: i32,
+    s_time: i32,
+    padding: [i32; 47],
+}
+
+#[repr(C)]
+pub struct CppMount {
+    m_dev: i16,
+    m_spb: *mut CppSuperBlock,
+    m_inodep: InodeRefCompat,
+}
+
 impl SuperBlock {
     pub fn new() -> SuperBlockRef {
         Arc::new(Spin::new(Self {
@@ -76,6 +105,36 @@ impl SuperBlock {
 
     pub fn is_ilock(&self) -> bool {
         self.s_flag.contains(SuperBlockFlag::S_ILOCK)
+    }
+
+    fn from_cpp(spb: &CppSuperBlock, time: i32) -> Self {
+        let mut flag = SuperBlockFlag::empty();
+        if spb.s_flock != 0 {
+            flag.insert(SuperBlockFlag::S_FLOCK);
+        }
+        if spb.s_ilock != 0 {
+            flag.insert(SuperBlockFlag::S_ILOCK);
+        }
+        if spb.s_fmod != 0 {
+            flag.insert(SuperBlockFlag::S_FMOD);
+        }
+        if spb.s_ronly != 0 {
+            flag.insert(SuperBlockFlag::S_RONLY);
+        }
+
+        flag.remove(SuperBlockFlag::S_FLOCK | SuperBlockFlag::S_ILOCK | SuperBlockFlag::S_RONLY);
+
+        Self {
+            s_isize: spb.s_isize,
+            s_fsize: spb.s_fsize,
+            s_nfree: spb.s_nfree,
+            s_free: spb.s_free,
+            s_ninode: spb.s_ninode,
+            s_inode: spb.s_inode,
+            s_flag: flag,
+            s_time: time,
+            padding: [0; 50],
+        }
     }
 }
 
@@ -118,6 +177,39 @@ impl FileSystem {
     pub const DATA_ZONE_SIZE: usize = 0x7400;
     pub const DATA_ZONE_END_SECTOR: usize = Self::DATA_ZONE_START_SECTOR + Self::DATA_ZONE_SIZE;
 
+    fn install_loaded_super_block(&mut self, loaded_super_block: &CppSuperBlock, time: i32) {
+        self.m_mount[0].m_dev = DevId(ROOTDEV);
+        self.m_mount[0].m_spb = Some(Arc::new(Spin::new(SuperBlock::from_cpp(
+            loaded_super_block,
+            time,
+        ))));
+        self.m_mount[0].m_inode = None;
+    }
+
+    fn read_super_block() -> Result<CppSuperBlock, FileSystemError> {
+        let mut super_block = core::mem::MaybeUninit::<CppSuperBlock>::zeroed();
+        let super_block_ptr = super_block.as_mut_ptr() as *mut u8;
+
+        for i in 0..2 {
+            let buf = global_buffer_manager()
+                .bread(
+                    DevId(ROOTDEV),
+                    PhysicalBlock((Self::SUPER_BLOCK_SECTOR_NUMBER + i) as u32),
+                )
+                .map_err(|_| FileSystemError::LoadSuperBlockFailed)?;
+
+            unsafe {
+                ptr::copy_nonoverlapping(
+                    buf.as_bytes().as_ptr(),
+                    super_block_ptr.add(i * Buf::BLOCK_SIZE),
+                    Buf::BLOCK_SIZE,
+                );
+            }
+        }
+
+        Ok(unsafe { super_block.assume_init() })
+    }
+
     pub fn new() -> Self {
         Self {
             m_mount: array::from_fn(|_| Mount::new()),
@@ -126,26 +218,8 @@ impl FileSystem {
     }
 
     pub fn load_super_block(&mut self) -> Result<(), FileSystemError> {
-        let super_block = SuperBlock::new();
-
-        // TODO: buffer manager
-        // for i in 0..2 {
-        //     let buf = buffer_manager.bread(ROOTDEV, Self::SUPER_BLOCK_SECTOR_NUMBER + i)?;
-        //     copy 512 bytes into super_block half i
-        //     buffer_manager.brelse(buf);
-        // }
-
-        {
-            let mut spb = super_block.lock();
-            spb.s_flag.remove(
-                SuperBlockFlag::S_FLOCK | SuperBlockFlag::S_ILOCK | SuperBlockFlag::S_RONLY,
-            );
-            spb.s_time = 0;
-        }
-
-        self.m_mount[0].m_dev = DevId(0);
-        self.m_mount[0].m_spb = Some(super_block);
-        self.m_mount[0].m_inode = None;
+        let time = compat_get_time() as i32;
+        self.install_loaded_super_block(&Self::read_super_block()?, time);
 
         Ok(())
     }
@@ -390,3 +464,32 @@ impl FileSystem {
         false
     }
 }
+
+define_class_compat! {impl FileSystem {
+    pub fn load_super_block(mount: *mut CppMount, super_block: *mut CppSuperBlock) -> bool {
+        if mount.is_null() || super_block.is_null() {
+            return false;
+        }
+
+        let time = compat_get_time() as i32;
+        let Ok(mut loaded_super_block) = FileSystem::read_super_block() else {
+            return false;
+        };
+
+        loaded_super_block.s_flock = 0;
+        loaded_super_block.s_ilock = 0;
+        loaded_super_block.s_ronly = 0;
+        loaded_super_block.s_time = time;
+
+        fs::global_file_system().install_loaded_super_block(&loaded_super_block, time);
+
+        unsafe {
+            super_block.write(loaded_super_block);
+
+            (*mount).m_dev = ROOTDEV;
+            (*mount).m_spb = super_block;
+        }
+
+        true
+    }
+}}

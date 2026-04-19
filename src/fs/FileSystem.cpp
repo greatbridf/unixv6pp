@@ -7,6 +7,8 @@
 #include "Video.h"
 #include "fs_defines.h"
 
+extern "C" bool FileSystem_load_super_block(Mount*, SuperBlock*);
+
 /*==============================class SuperBlock===================================*/
 /* 系统全局超级块SuperBlock对象 */
 SuperBlock g_spb;
@@ -60,29 +62,8 @@ void FileSystem::Initialize()
 
 void FileSystem::LoadSuperBlock()
 {
-	User& u = Kernel::Instance().GetUser();
-	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
-
-	for (int i = 0; i < 2; i++)
-	{
-		int* p = (int *)&g_spb + i * 128;
-
-		Buf* pBuf = bufMgr.Bread(DeviceManager::ROOTDEV, fs::SUPERBLOCK_SECTOR_OFF + i);
-
-		Utility::DWordCopy((int *)pBuf->b_addr, p, 128);
-
-		bufMgr.Brelse(pBuf);
-	}
-	if (User::NOERROR != User_get_error())
+	if (!FileSystem_load_super_block(&this->m_Mount[0], &g_spb))
                 Utility::Panic("Load SuperBlock Error....!\n");
-
-	this->m_Mount[0].m_dev = DeviceManager::ROOTDEV;
-	this->m_Mount[0].m_spb = &g_spb;
-
-	g_spb.s_flock = 0;
-	g_spb.s_ilock = 0;
-	g_spb.s_ronly = 0;
-	g_spb.s_time = Time::time;
 }
 
 SuperBlock* FileSystem::GetFS(short dev)
