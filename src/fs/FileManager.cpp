@@ -4,7 +4,6 @@
 #include "TimeInterrupt.h"
 
 #include "fs_defines.h"
-#include "libyrosstd/string.h"
 
 /*==========================class FileManager===============================*/
 FileManager::FileManager()
@@ -141,7 +140,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 	pInode->Prele();
 
 	/* 分配打开文件控制块File结构 */
-	File* pFile = f_alloc(this->m_OpenFileTable);
+	File* pFile = OpenFileTable_f_alloc(this->m_OpenFileTable);
 	if ( NULL == pFile )
 	{
 		InodeTable_put(pInode);
@@ -187,7 +186,7 @@ void FileManager::Close()
 
 	/* 释放打开文件描述符fd，递减File结构引用计数 */
 	OpenFiles_set_file(fd, NULL);
-        f_close(this->m_OpenFileTable, pFile);
+	OpenFileTable_f_close(this->m_OpenFileTable, pFile);
 }
 
 void FileManager::Seek()
@@ -393,7 +392,7 @@ void FileManager::Pipe()
 	}
 
 	/* 分配读管道的File结构 */
-	pFileRead = f_alloc(this->m_OpenFileTable);
+	pFileRead = OpenFileTable_f_alloc(this->m_OpenFileTable);
 	if ( NULL == pFileRead )
 	{
 		InodeTable_put(pInode);
@@ -403,7 +402,7 @@ void FileManager::Pipe()
 	fd[0] = User_get_ar0()[User::EAX];
 
 	/* 分配写管道的File结构 */
-	pFileWrite = f_alloc(this->m_OpenFileTable);
+	pFileWrite = OpenFileTable_f_alloc(this->m_OpenFileTable);
 	if ( NULL == pFileWrite )    /*若分配失败，擦除管道读端相关的所有打开文件结构*/
 	{
 		pFileRead->f_count = 0;

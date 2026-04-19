@@ -9,8 +9,8 @@
 class OpenFileTable;
 struct open_file_table;
 
-File* f_alloc(struct open_file_table* oft);
-void f_close(struct open_file_table* oft, File* file);
+extern "C" File* OpenFileTable_f_alloc(struct open_file_table*);
+extern "C" void OpenFileTable_f_close(struct open_file_table*, File*);
 
 extern "C" Inode* InodeTable_get(short dev, int ino);
 extern "C" void InodeTable_put(Inode*);
