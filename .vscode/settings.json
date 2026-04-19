@@ -17,5 +17,6 @@
         "stdio.h": "c",
         "__splash.h": "c"
     },
-    "cmake.sourceDirectory": "src"
+    "cmake.sourceDirectory": "src",
+    "rust-analyzer.cargo.target": "i686-none.json"
 }
