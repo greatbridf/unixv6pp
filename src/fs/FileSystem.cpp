@@ -15,7 +15,6 @@ extern "C" Inode* FileSystem_i_alloc(short);
 extern "C" void FileSystem_i_free(short, int);
 extern "C" Buf* FileSystem_alloc(short);
 extern "C" void FileSystem_free(short, int);
-extern "C" Mount* FileSystem_get_mount(Inode*);
 
 /*==============================class SuperBlock===================================*/
 /* 系统全局超级块SuperBlock对象 */
@@ -29,26 +28,6 @@ SuperBlock::SuperBlock()
 SuperBlock::~SuperBlock()
 {
 	//nothing to do here
-}
-
-/*==============================class Mount===================================*/
-Mount::Mount()
-{
-	this->m_dev = -1;
-	this->m_spb = NULL;
-	this->m_inodep = NULL;
-}
-
-Mount::~Mount()
-{
-	this->m_dev = -1;
-	this->m_inodep = NULL;
-	//释放内存SuperBlock副本
-	if(!this->m_spb)
-                return;
-
-        delete this->m_spb;
-        this->m_spb = NULL;
 }
 
 /*==============================class FileSystem===================================*/
@@ -110,11 +89,6 @@ Buf* FileSystem::Alloc(short dev)
 void FileSystem::Free(short dev, int blkno)
 {
 	FileSystem_free(dev, blkno);
-}
-
-Mount* FileSystem::GetMount(Inode *pInode)
-{
-	return FileSystem_get_mount(pInode);
 }
 
 bool FileSystem::BadBlock(SuperBlock *spb, short dev, int blkno)

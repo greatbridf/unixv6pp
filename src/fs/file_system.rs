@@ -578,8 +578,4 @@ define_class_compat! {impl FileSystem {
             Userspace::get().set_error(FileSystem::map_error_to_posix(err));
         }
     }
-
-    pub fn get_mount(_inode: Option<InodeRefCompat>) -> *mut c_void {
-        ptr::null_mut()
-    }
 }}
