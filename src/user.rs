@@ -69,7 +69,7 @@ pub struct Userspace {
     /// Used by syscall handlers
     args: [usize; 5],
 
-    dirp: *mut u8,
+    pub dirp: *mut u8,
 
     /// User time elapsed
     utime: u32,

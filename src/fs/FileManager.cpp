@@ -30,7 +30,7 @@ void FileManager::Open()
 	Inode* pInode;
 	User& u = Kernel::Instance().GetUser();
 
-	pInode = this->NameI(NextChar, FileManager::OPEN);	/* 0 = Open, not create */
+	pInode = this->NameI(FileManager::OPEN);	/* 0 = Open, not create */
 	/* 没有找到相应的Inode */
 	if ( NULL == pInode )
 	{
@@ -50,7 +50,7 @@ void FileManager::Creat()
 	unsigned int newACCMode = User_get_arg()[1] & (Inode::IRWXU|Inode::IRWXG|Inode::IRWXO);
 
 	/* 搜索目录的模式为1，表示创建；若父目录不可写，出错返回 */
-	pInode = this->NameI(NextChar, FileManager::CREATE);
+	pInode = this->NameI(FileManager::CREATE);
 	/* 没有找到相应的Inode，或NameI出错 */
 	if ( NULL == pInode )
 	{
@@ -274,7 +274,7 @@ void FileManager::Stat()
 	Inode* pInode;
 	User& u = Kernel::Instance().GetUser();
 
-	pInode = this->NameI(FileManager::NextChar, FileManager::OPEN);
+	pInode = this->NameI(FileManager::OPEN);
 	if ( NULL == pInode )
 	{
 		return;
@@ -530,8 +530,22 @@ loop:
 
 }
 
+extern "C" const char* Utils_get_path();
+extern "C" void Utils_put_path(const char* path);
+
+class RustPath {
+public:
+	RustPath() : path(Utils_get_path()) { }
+	~RustPath() { Utils_put_path(this->path); }
+
+	const char* get() const { return this->path; }
+
+private:
+	const char* path;
+};
+
 /* 返回NULL表示目录搜索失败，否则是根指针，指向文件的内存打开i节点 ，上锁的内存i节点  */
-Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
+Inode* FileManager::NameI(enum DirectorySearchMode mode )
 {
 	Inode* pInode;
 	Buf* pBuf;
@@ -540,13 +554,15 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 	int freeEntryOffset;	/* 以创建文件模式搜索目录时，记录空闲目录项的偏移量 */
 	User& u = Kernel::Instance().GetUser();
 	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
+	RustPath path;
+	const char* curpath = path.get();
 
 	/*
 	 * 如果该路径是'/'开头的，从根目录开始搜索，
 	 * 否则从进程当前工作目录开始搜索。
 	 */
 	pInode = User_get_cdir();
-	if ( '/' == (curchar = (*func)()) )
+	if ( '/' == (curchar = (*curpath++)) )
 	{
 		pInode = this->rootDirInode;
 	}
@@ -557,7 +573,7 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 	/* 允许出现////a//b 这种路径 这种路径等价于/a/b */
 	while ( '/' == curchar )
 	{
-		curchar = (*func)();
+		curchar = (*curpath++);
 	}
 	/* 如果试图更改和删除当前目录文件则出错 */
 	if ( '\0' == curchar && mode != FileManager::OPEN )
@@ -607,7 +623,7 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 				*pChar = curchar;
 				pChar++;
 			}
-			curchar = (*func)();
+			curchar = (*curpath++);
 		}
 		/* 将u_dbuf剩余的部分填充为'\0' */
 		while ( pChar < &(User_get_dbuf()[DirectoryEntry::DIRSIZ]) )
@@ -619,7 +635,7 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 		/* 允许出现////a//b 这种路径 这种路径等价于/a/b */
 		while ( '/' == curchar )
 		{
-			curchar = (*func)();
+			curchar = (*curpath++);
 		}
 
 		if ( User_get_error() != User::NOERROR )
@@ -761,17 +777,10 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 			return NULL;
 		}
 	}
+
 out:
 	InodeTable_put(pInode);
 	return NULL;
-}
-
-char FileManager::NextChar()
-{
-	User& u = Kernel::Instance().GetUser();
-
-	/* User_get_dirp()指向pathname中的字符 */
-	return *User_get_dirp()++;
 }
 
 /* 由creat调用。
@@ -896,7 +905,7 @@ Inode* FileManager::Owner()
 	Inode* pInode;
 	User& u = Kernel::Instance().GetUser();
 
-	if ( (pInode = this->NameI(NextChar, FileManager::OPEN)) == NULL )
+	if ( (pInode = this->NameI(FileManager::OPEN)) == NULL )
 	{
 		return NULL;
 	}
@@ -954,7 +963,7 @@ void FileManager::ChDir()
 	Inode* pInode;
 	User& u = Kernel::Instance().GetUser();
 
-	pInode = this->NameI(FileManager::NextChar, FileManager::OPEN);
+	pInode = this->NameI(FileManager::OPEN);
 	if ( NULL == pInode )
 	{
 		return;
@@ -984,7 +993,7 @@ void FileManager::Link()
 	Inode* pNewInode;
 	User& u = Kernel::Instance().GetUser();
 
-	pInode = this->NameI(FileManager::NextChar, FileManager::OPEN);
+	pInode = this->NameI(FileManager::OPEN);
 	/* 打卡文件失败 */
 	if ( NULL == pInode )
 	{
@@ -1010,7 +1019,7 @@ void FileManager::Link()
 	pInode->i_flag &= (~Inode::ILOCK);
 	/* 指向要创建的新路径newPathname */
 	User_get_dirp() = (char *)User_get_arg()[1];
-	pNewInode = this->NameI(FileManager::NextChar, FileManager::CREATE);
+	pNewInode = this->NameI(FileManager::CREATE);
 	/* 如果文件已存在 */
 	if ( NULL != pNewInode )
 	{
@@ -1045,7 +1054,7 @@ void FileManager::UnLink()
 	Inode* pDeleteInode;
 	User& u = Kernel::Instance().GetUser();
 
-	pDeleteInode = this->NameI(FileManager::NextChar, FileManager::DELETE);
+	pDeleteInode = this->NameI(FileManager::DELETE);
 	if ( NULL == pDeleteInode )
 	{
 		return;
@@ -1088,7 +1097,7 @@ void FileManager::MkNod()
 	/* 检查uid是否是root，该系统调用只有uid==root时才可被调用 */
 	if ( Userspace_is_root() )
 	{
-		pInode = this->NameI(FileManager::NextChar, FileManager::CREATE);
+		pInode = this->NameI(FileManager::CREATE);
 		/* 要创建的文件已经存在,这里并不能去覆盖此文件 */
 		if ( pInode != NULL )
 		{

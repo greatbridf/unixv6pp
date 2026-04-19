@@ -112,12 +112,7 @@ public:
 	 * @comment 目录搜索，将路径转化为相应的Inode，
 	 * 返回上锁后的Inode
 	 */
-	Inode* NameI(char (*func)(), enum DirectorySearchMode mode);
-
-	/*
-	 * @comment 获取路径中的下一个字符
-	 */
-	static char NextChar();
+	Inode* NameI(enum DirectorySearchMode mode);
 
 	/*
 	 * @comment 被Creat()系统调用使用，用于为创建新文件分配内核资源

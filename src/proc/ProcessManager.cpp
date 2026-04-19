@@ -79,7 +79,7 @@ int ProcessManager::NewProc()
 			break;
 		}
 	}
-	if ( !child ) 
+	if ( !child )
 	{
 		Utility::Panic("No Proc Entry!");
 	}
@@ -140,7 +140,7 @@ int ProcessManager::NewProc()
 	Userspace_after_fork(handle);
 
 	User_get_procp() = current;
-	/* 
+	/*
 	 * 拷贝进程图像期间，父进程的m_UserPageTableArray指向子进程的相对地址映照表；
 	 * 复制完成后才能恢复为先前备份的pgTable。
 	 */
@@ -151,7 +151,7 @@ int ProcessManager::NewProc()
 
 /* 在进程切换的过程中，根本没有用到TSS */
 int ProcessManager::Swtch()
-{	
+{
 	//Diagnose::Write("Start Swtch()\n");
 	User& u = Kernel::Instance().GetUser();
 	SaveU(User_get_rsav());
@@ -159,7 +159,7 @@ int ProcessManager::Swtch()
 	/* 0#进程上台*/
 	Process* procZero = &process[0];
 
-	/* 
+	/*
 	 * 将SwtchUStruct()和RetU()作为临界区，防止被中断打断。
 	 * 如果在RetU()恢复esp之后，尚未恢复ebp时，中断进入会导致
 	 * esp和ebp分别指向两个不同进程的核心栈中位置。 good comment！
@@ -191,7 +191,7 @@ int ProcessManager::Swtch()
 	X86Assembly::STI();
 
 	User_get_MemoryDescriptor().MapToPageTable();
-	
+
 	/*
 	 * If the new process paused because it was
 	 * swapped out, set the stack level to the last call
@@ -207,8 +207,8 @@ int ProcessManager::Swtch()
 		User_get_procp()->p_flag &= ~Process::SSWAP;
 		aRetU(User_get_ssav());
 	}
-	
-	/* 
+
+	/*
 	 * 被fork出的进程在上台之前会在被调度上台时返回1，
 	 * 并同时返回到NewProc()执行的地址
 	 */
@@ -223,7 +223,7 @@ void ProcessManager::Sched()
 	unsigned int size;
 	unsigned long desAddress;
 
-	/* 
+	/*
 	 * 选择在交换区驻留时间最长，处于就绪状态的进程换入
 	 */
 	goto loop;
@@ -256,7 +256,7 @@ loop:
 	X86Assembly::STI();
 	/* 计算进程换入需要的内存大小 */
 	size = pSelected->p_size;
-	/* 
+	/*
 	 * 如果存在共享正文段，但是没有进程图像在内存中，引用该正文段的进程，
 	 * 即共享正文段不再内存中，换入时需要读入正文段在交换区中的副本
 	 */
@@ -290,7 +290,7 @@ loop:
 		}
 	}
 
-	/* 
+	/*
 	 * 在换出高优先权睡眠状态(SSLEEP)、就绪状态(SRUN)进程而腾出内存之前，
 	 * 检查待换入进程在交换区驻留时间是否已达到3秒，低于则不予换入
 	 */
@@ -329,7 +329,7 @@ found1:
 	/* 已经分配好足够的内存，进行实际的换入操作 */
 found2:
 	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
-	/* 
+	/*
 	* 如果存在共享正文段，但是没有进程图像在内存中，引用该正文段的进程，
 	* 即共享正文段不再内存中，换入时需要读入正文段在交换区中的副本
 	*/
@@ -371,7 +371,7 @@ void ProcessManager::Wait()
 	User& u = Kernel::Instance().GetUser();
 	SwapperManager& swapperMgr = Kernel::Instance().GetSwapperManager();
 	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
-	
+
 	Diagnose::Write("Process %d finding dead son. They are ",User_get_procp()->p_pid);
 	while(true)
 	{
@@ -487,7 +487,7 @@ void ProcessManager::Exec()
 	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 
 	Diagnose::Write("Process %d execing\n",User_get_procp()->p_pid);
-	pInode = fileMgr.NameI(FileManager::NextChar, FileManager::OPEN);
+	pInode = fileMgr.NameI(FileManager::OPEN);
 	if ( NULL == pInode )	//搜索目录失败
 	{
 		return;
@@ -644,7 +644,7 @@ void ProcessManager::Exec()
 	/* 没有可共享的现成Text结构，进行相应初始化 */
 	if ( NULL != pText )
 	{
-		/* 
+		/*
 		 * 此处i_count++用于平衡XFree()函数中的IPut(x_iptr)；倘若只有Exec()开始处
 		 * 调用NameI()函数中IGet()，以及Exec()结尾处IPut()释放exe文件的Inode回到空闲Inode表，
 		 * 极端情况下：若后续进程很快也Exec()，获取空闲Inode恰好是之前加载的exe文件释放的Inode，
@@ -693,7 +693,7 @@ void ProcessManager::Exec()
 	/* 释放用于读入exe文件和备份用户栈参数的内存：mapAddress和fakeStack */
 	kernelPgMgr.FreeMemory(allocLength, fakeStack);
 
-	/* 
+	/*
 	  * 将runtime()、SignalHandler()函数拷贝到进程用户态地址空间0x00000000线性地址处，runtime()
 	  * 用于ring0退出到ring3特权级之后执行的代码，SignalHandler()为进程的信号处理函数入口，负责
 	  * 调用具体信号的Handler。每一个进程0x00000000线性地址处都应该有一份独立的runtime()及SignalHandler()
@@ -774,7 +774,7 @@ Process* ProcessManager::Select ()
 		}
 
 		SwtchNum++;
-		if ( SwtchNum & 0x80000000 ) 
+		if ( SwtchNum & 0x80000000 )
 		{
 			SwtchNum = 0;	/* 计数溢出变为负数后，重置为零 */
 		}
