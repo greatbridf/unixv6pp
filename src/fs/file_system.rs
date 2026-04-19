@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::{array, ffi::c_void, ptr};
 use eonix_spin::Spin;
 
-use bitflags::bitflags;
 use kernel_macros::define_class_compat;
 
 use crate::{
@@ -15,16 +14,6 @@ use crate::{
     }, proc::{PINOD, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 
-bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct SuperBlockFlag: u32 {
-        const S_FLOCK = 0x1;
-        const S_ILOCK = 0x2;
-        const S_FMOD  = 0x4;
-        const S_RONLY = 0x8;
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileSystemError {
     NoSuchFileSystem,
@@ -36,6 +25,7 @@ pub enum FileSystemError {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct SuperBlock {
     pub s_isize: i32,
     pub s_fsize: i32,
@@ -46,26 +36,12 @@ pub struct SuperBlock {
     pub s_ninode: i32,
     pub s_inode: [i32; 100],
 
-    pub s_flag: SuperBlockFlag,
+    pub s_flock: i32,
+    pub s_ilock: i32,
+    pub s_fmod: i32,
+    pub s_ronly: i32,
     pub s_time: i32,
 
-    padding: [i32; 50],
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct CppSuperBlock {
-    s_isize: i32,
-    s_fsize: i32,
-    s_nfree: i32,
-    s_free: [i32; 100],
-    s_ninode: i32,
-    s_inode: [i32; 100],
-    s_flock: i32,
-    s_ilock: i32,
-    s_fmod: i32,
-    s_ronly: i32,
-    s_time: i32,
     padding: [i32; 47],
 }
 
@@ -78,73 +54,29 @@ impl SuperBlock {
             s_free: [0; 100],
             s_ninode: 0,
             s_inode: [0; 100],
-            s_flag: SuperBlockFlag::empty(),
+            s_flock: 0,
+            s_ilock: 0,
+            s_fmod: 0,
+            s_ronly: 0,
             s_time: 0,
-            padding: [0; 50],
+            padding: [0; 47],
         }))
     }
 
     pub fn is_readonly(&self) -> bool {
-        self.s_flag.contains(SuperBlockFlag::S_RONLY)
+        self.s_ronly != 0
     }
 
     pub fn is_modified(&self) -> bool {
-        self.s_flag.contains(SuperBlockFlag::S_FMOD)
+        self.s_fmod != 0
     }
 
     pub fn is_flock(&self) -> bool {
-        self.s_flag.contains(SuperBlockFlag::S_FLOCK)
+        self.s_flock != 0
     }
 
     pub fn is_ilock(&self) -> bool {
-        self.s_flag.contains(SuperBlockFlag::S_ILOCK)
-    }
-
-    fn from_cpp(spb: &CppSuperBlock, time: i32) -> Self {
-        let mut flag = SuperBlockFlag::empty();
-        if spb.s_flock != 0 {
-            flag.insert(SuperBlockFlag::S_FLOCK);
-        }
-        if spb.s_ilock != 0 {
-            flag.insert(SuperBlockFlag::S_ILOCK);
-        }
-        if spb.s_fmod != 0 {
-            flag.insert(SuperBlockFlag::S_FMOD);
-        }
-        if spb.s_ronly != 0 {
-            flag.insert(SuperBlockFlag::S_RONLY);
-        }
-
-        flag.remove(SuperBlockFlag::S_FLOCK | SuperBlockFlag::S_ILOCK | SuperBlockFlag::S_RONLY);
-
-        Self {
-            s_isize: spb.s_isize,
-            s_fsize: spb.s_fsize,
-            s_nfree: spb.s_nfree,
-            s_free: spb.s_free,
-            s_ninode: spb.s_ninode,
-            s_inode: spb.s_inode,
-            s_flag: flag,
-            s_time: time,
-            padding: [0; 50],
-        }
-    }
-
-    fn to_cpp(&self) -> CppSuperBlock {
-        CppSuperBlock {
-            s_isize: self.s_isize,
-            s_fsize: self.s_fsize,
-            s_nfree: self.s_nfree,
-            s_free: self.s_free,
-            s_ninode: self.s_ninode,
-            s_inode: self.s_inode,
-            s_flock: self.s_flag.contains(SuperBlockFlag::S_FLOCK) as i32,
-            s_ilock: self.s_flag.contains(SuperBlockFlag::S_ILOCK) as i32,
-            s_fmod: self.s_flag.contains(SuperBlockFlag::S_FMOD) as i32,
-            s_ronly: self.s_flag.contains(SuperBlockFlag::S_RONLY) as i32,
-            s_time: self.s_time,
-            padding: [0; 47],
-        }
+        self.s_ilock != 0
     }
 }
 
@@ -187,17 +119,16 @@ impl FileSystem {
     pub const DATA_ZONE_SIZE: usize = 0x7400;
     pub const DATA_ZONE_END_SECTOR: usize = Self::DATA_ZONE_START_SECTOR + Self::DATA_ZONE_SIZE;
 
-    fn install_loaded_super_block(&mut self, loaded_super_block: &CppSuperBlock, time: i32) {
+    fn install_loaded_super_block(&mut self, loaded_super_block: &SuperBlock, time: i32) {
+        let mut super_block = *loaded_super_block;
+        super_block.s_time = time;
         self.m_mount[0].m_dev = DevId(ROOTDEV);
-        self.m_mount[0].m_spb = Some(Arc::new(Spin::new(SuperBlock::from_cpp(
-            loaded_super_block,
-            time,
-        ))));
+        self.m_mount[0].m_spb = Some(Arc::new(Spin::new(super_block)));
         self.m_mount[0].m_inode = None;
     }
 
-    fn read_super_block() -> Result<CppSuperBlock, FileSystemError> {
-        let mut super_block = core::mem::MaybeUninit::<CppSuperBlock>::zeroed();
+    fn read_super_block() -> Result<SuperBlock, FileSystemError> {
+        let mut super_block = core::mem::MaybeUninit::<SuperBlock>::zeroed();
         let super_block_ptr = super_block.as_mut_ptr() as *mut u8;
 
         for i in 0..2 {
@@ -220,8 +151,8 @@ impl FileSystem {
         Ok(unsafe { super_block.assume_init() })
     }
 
-    fn write_super_block(dev: DevId, super_block: &CppSuperBlock) -> Result<(), FileSystemError> {
-        let super_block_ptr = super_block as *const CppSuperBlock as *const u8;
+    fn write_super_block(dev: DevId, super_block: &SuperBlock) -> Result<(), FileSystemError> {
+        let super_block_ptr = super_block as *const SuperBlock as *const u8;
 
         for i in 0..2 {
             let buf = global_buffer_manager()
@@ -356,11 +287,12 @@ impl FileSystem {
 
             {
                 let mut sb = spb.lock();
-                sb.s_flag.remove(SuperBlockFlag::S_FMOD);
+                sb.s_fmod = 0;
                 sb.s_time = time;
             }
 
-            let _ = Self::write_super_block(mount.m_dev, &spb.lock().to_cpp());
+            let sb = *spb.lock();
+            let _ = Self::write_super_block(mount.m_dev, &sb);
         }
 
         fs::global_inode_table().update_inode_table();
@@ -386,12 +318,12 @@ impl FileSystem {
         {
             let mut sb = spb.lock();
             if sb.s_ninode <= 0 {
-                sb.s_flag.insert(SuperBlockFlag::S_ILOCK);
+                sb.s_ilock = 1;
 
                 let isize = sb.s_isize;
                 let refill_result = Self::scan_free_inodes(dev, isize);
 
-                sb.s_flag.remove(SuperBlockFlag::S_ILOCK);
+                sb.s_ilock = 0;
 
                 let (ninode, inode) = refill_result?;
                 sb.s_ninode = ninode;
@@ -424,7 +356,7 @@ impl FileSystem {
 
             if is_free {
                 inode.lock().clean();
-                spb.lock().s_flag.insert(SuperBlockFlag::S_FMOD);
+                spb.lock().s_fmod = 1;
                 return Ok(inode);
             }
 
@@ -443,7 +375,7 @@ impl FileSystem {
         let idx = sb.s_ninode as usize;
         sb.s_inode[idx] = number;
         sb.s_ninode += 1;
-        sb.s_flag.insert(SuperBlockFlag::S_FMOD);
+        sb.s_fmod = 1;
         Ok(())
     }
 
@@ -451,7 +383,7 @@ impl FileSystem {
         let spb = self.get_fs(dev)?;
 
         let mut sb = spb.lock();
-        let flock_addr = (&raw const sb.s_flag) as usize;
+        let flock_addr = (&raw const sb.s_flock) as usize;
         while sb.is_flock() {
             drop(sb);
             sleep(flock_addr, PINOD);
@@ -474,7 +406,7 @@ impl FileSystem {
         }
 
         if sb.s_nfree <= 0 {
-            sb.s_flag.insert(SuperBlockFlag::S_FLOCK);
+            sb.s_flock = 1;
             drop(sb);
 
             let refill_result = global_buffer_manager()
@@ -485,11 +417,11 @@ impl FileSystem {
                     let mut sb = spb.lock();
                     sb.s_nfree = table[0];
                     sb.s_free.copy_from_slice(&table[1..101]);
-                    sb.s_flag.remove(SuperBlockFlag::S_FLOCK);
+                    sb.s_flock = 0;
                 });
 
             if refill_result.is_err() {
-                spb.lock().s_flag.remove(SuperBlockFlag::S_FLOCK);
+                spb.lock().s_flock = 0;
             }
 
             wakeup_all(flock_addr);
@@ -501,7 +433,7 @@ impl FileSystem {
             .get_blk(dev, PhysicalBlock(blkno as u32))
             .map_err(|_| FileSystemError::BufferUnavailable)?;
         global_buffer_manager().clr_buf(buf);
-        sb.s_flag.insert(SuperBlockFlag::S_FMOD);
+        sb.s_fmod = 1;
 
         Ok(buf)
     }
@@ -510,9 +442,9 @@ impl FileSystem {
         let spb = self.get_fs(dev)?;
 
         let mut sb = spb.lock();
-        sb.s_flag.insert(SuperBlockFlag::S_FMOD);
+        sb.s_fmod = 1;
 
-        let flock_addr = (&raw const sb.s_flag) as usize;
+        let flock_addr = (&raw const sb.s_flock) as usize;
         while sb.is_flock() {
             drop(sb);
             sleep(flock_addr, PINOD);
@@ -529,7 +461,7 @@ impl FileSystem {
         }
 
         if sb.s_nfree >= 100 {
-            sb.s_flag.insert(SuperBlockFlag::S_FLOCK);
+            sb.s_flock = 1;
             let nfree = sb.s_nfree;
             let free = sb.s_free;
             drop(sb);
@@ -552,7 +484,7 @@ impl FileSystem {
 
             sb = spb.lock();
             sb.s_nfree = 0;
-            sb.s_flag.remove(SuperBlockFlag::S_FLOCK);
+            sb.s_flock = 0;
             wakeup_all(flock_addr);
             write_result?;
         }
@@ -560,7 +492,7 @@ impl FileSystem {
         let idx = sb.s_nfree as usize;
         sb.s_free[idx] = blkno;
         sb.s_nfree += 1;
-        sb.s_flag.insert(SuperBlockFlag::S_FMOD);
+        sb.s_fmod = 1;
         Ok(())
     }
 
@@ -584,7 +516,7 @@ define_class_compat! {impl FileSystem {
         fs::global_file_system().load_super_block().is_ok()
     }
 
-    pub fn get_fs(dev: DevId, super_block: *mut CppSuperBlock) -> bool {
+    pub fn get_fs(dev: DevId, super_block: *mut SuperBlock) -> bool {
         if super_block.is_null() {
             return false;
         }
@@ -594,7 +526,7 @@ define_class_compat! {impl FileSystem {
         };
 
         unsafe {
-            super_block.write(spb.lock().to_cpp());
+            super_block.write(*spb.lock());
         }
 
         true
