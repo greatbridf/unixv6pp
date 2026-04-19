@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use core::ops::Deref;
 use eonix_spin::{NoContext, Spin, SpinGuard};
 use eonix_sync_base::LazyLock;
 use file_system::FileSystem;
@@ -13,6 +14,44 @@ mod open_file_manager;
 pub(crate) type FileRef = Arc<Spin<File>>;
 pub(crate) type InodeRef = Arc<Spin<Inode>>;
 pub(crate) type SuperBlockRef = Arc<Spin<SuperBlock>>;
+
+pub(crate) struct InodeRefGuard(Option<InodeRef>);
+
+impl InodeRefGuard {
+    pub fn new(inode: InodeRef) -> Self {
+        Self(Some(inode))
+    }
+
+    pub fn into_inner(mut self) -> InodeRef {
+        self.0.take().expect("inode guard already consumed")
+    }
+}
+
+impl Drop for InodeRefGuard {
+    fn drop(&mut self) {
+        if let Some(inode) = self.0.take() {
+            global_inode_table().i_put(inode);
+        }
+    }
+}
+
+impl Deref for InodeRefGuard {
+    type Target = InodeRef;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref().expect("inode guard already consumed")
+    }
+}
+
+pub(crate) trait InodeRefPutExt {
+    fn with_i_put(self) -> InodeRefGuard;
+}
+
+impl InodeRefPutExt for InodeRef {
+    fn with_i_put(self) -> InodeRefGuard {
+        InodeRefGuard::new(self)
+    }
+}
 
 pub use file::{File, IOParameter, InodeRefCompat, OpenFiles};
 pub use file_manager::DirectoryEntry;

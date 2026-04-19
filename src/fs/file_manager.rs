@@ -1,10 +1,8 @@
-use core::ops::Deref;
-
 use kernel_macros::define_class_compat;
 
 use crate::{
     constants::PosixError, dev::buffer::{Buffer, LogicalBlock}, fs::{
-        GLOBAL_INODE_TABLE, Inode, InodeRef, InodeRefCompat, inode::{InodeFlag, InodeMode, inoderef_leak}
+        GLOBAL_INODE_TABLE, Inode, InodeRef, InodeRefCompat, InodeRefGuard, InodeRefPutExt, inode::{InodeFlag, InodeMode, inoderef_leak}
     }, sync::SpinExt, user::Userspace
 };
 
@@ -49,7 +47,7 @@ trait InodeRefExt {
     fn readblk(&self, lbn: LogicalBlock) -> Buffer;
     fn search(
         &self, name: &[u8], create: bool, remove: bool
-    ) -> Result<InodeRef, PosixError>;
+    ) -> Result<Option<InodeRefGuard>, PosixError>;
 }
 
 impl InodeRefExt for InodeRef {
@@ -70,7 +68,7 @@ impl InodeRefExt for InodeRef {
 
     fn search(
         &self, name: &[u8], create: bool, remove: bool
-    ) -> Result<InodeRef, PosixError> {
+    ) -> Result<Option<InodeRefGuard>, PosixError> {
         const DENTRY_SIZE: usize = size_of::<DirectoryEntry>();
         let mut count = self.lock().i_size as usize / DENTRY_SIZE;
         let mut offset = 0;
@@ -150,41 +148,23 @@ impl InodeRefExt for InodeRef {
 
         match (err, ret) {
             (Some(err), _) => Err(err),
-            (None, Some(ret)) => Ok(ret),
-            _ => unreachable!(),
+            (None, ret) => Ok(ret),
         }
     }
 }
 
 impl FileManager {
-    pub fn find(&self, mut path: &[u8], mode: DirSearchMode) -> Result<InodeRef, PosixError> {
+    pub fn find(&self, mut path: &[u8], mode: DirSearchMode) -> Result<Option<InodeRef>, PosixError> {
         let mut iref;
-        struct I(Option<InodeRef>);
-
-        impl Drop for I {
-            fn drop(&mut self) {
-                if let Some(iref) = self.0.take() {
-                    GLOBAL_INODE_TABLE.lock().i_put(iref);
-                }
-            }
-        }
-
-        impl Deref for I {
-            type Target = InodeRef;
-
-            fn deref(&self) -> &Self::Target {
-                self.0.as_ref().unwrap()
-            }
-        }
 
         crate::println_debug!("{:?}", unsafe {
             core::str::from_utf8_unchecked(path)
         });
 
         if let Some(b'/') = path.first() {
-            iref = I(Some(self.root_inode.own()));
+            iref = self.root_inode.own().with_i_put();
         } else {
-            iref = I(Some(Userspace::get().getcwd()));
+            iref = Userspace::get().getcwd().with_i_put();
         }
 
         while let Some(b'/') = path.first() {
@@ -218,13 +198,17 @@ impl FileManager {
                 path = &path[1..];
             }
 
-            iref = I(Some(iref.search(name,
+            if let Some(i) = iref.search(name,
                 mode == DirSearchMode::Create && path.is_empty(),
                 mode == DirSearchMode::Delete && path.is_empty(),
-            )?));
+            )? {
+                iref = i;
+            } else {
+                return Ok(None);
+            }
         }
 
-        Ok(iref.0.take().unwrap())
+        Ok(Some(iref.into_inner()))
     }
 }
 
@@ -232,7 +216,8 @@ define_class_compat! {impl FileManager {
     pub fn namei(&mut self, mode: DirSearchMode) -> Option<InodeRefCompat> {
         let path = Userspace::get().argdir();
         match this.find(path, mode) {
-            Ok(iref) => Some(inoderef_leak(iref)),
+            Ok(Some(iref)) => Some(inoderef_leak(iref)),
+            Ok(None) => None,
             Err(err) => {
                 Userspace::get().error = Some(err);
                 None

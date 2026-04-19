@@ -357,10 +357,8 @@ impl FileSystem {
             if is_free {
                 inode.lock().clean();
                 spb.lock().s_fmod = 1;
-                return Ok(inode);
+                return Ok(inode.into_inner());
             }
-
-            fs::global_inode_table().i_put(inode);
         }
     }
 

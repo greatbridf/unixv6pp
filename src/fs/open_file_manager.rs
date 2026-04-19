@@ -4,7 +4,7 @@ use kernel_macros::define_class_compat;
 
 use crate::{
     Ext, compat::compat_get_time, constants::PosixError, dev::{buffer::{Buffer, DevId, PhysicalBlock}, buffer_manager::global_buffer_manager}, fs::{
-        self, FileRef, InodeRef, file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles}, file_system::FileSystem, inode::{DiskInode, Inode, InodeFlag, InodeMode, fileref_leak, inoderef_leak}
+        self, FileRef, InodeRef, InodeRefGuard, InodeRefPutExt, file::{File, FileFlags, FileRefCompat, InodeRefCompat, OpenFiles}, file_system::FileSystem, inode::{DiskInode, Inode, InodeFlag, InodeMode, fileref_leak, inoderef_leak}
     }, proc::{Channel, PINOD, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 
@@ -147,7 +147,7 @@ impl InodeTable {
         inode.i_addr = disk_inode.d_addr;
     }
 
-    pub fn i_get(&mut self, dev: DevId, ino: i32) -> Result<InodeRef, PosixError> {
+    pub fn i_get(&mut self, dev: DevId, ino: i32) -> Result<InodeRefGuard, PosixError> {
         loop {
             let Some(iref) = self.get(dev, ino) else {
                 let iref = self.alloc_free(dev, ino).ok_or(PosixError::ENFILE)?;
@@ -156,7 +156,7 @@ impl InodeTable {
 
                 let buf = global_buffer_manager().bread(dev, PhysicalBlock(sector))?;
                 Self::icopy(&mut *iref.lock(), buf, ino);
-                return Ok(iref);
+                return Ok(iref.with_i_put());
             };
 
             let mut inode = iref.lock();
@@ -188,7 +188,7 @@ impl InodeTable {
             inode.i_flag.insert(InodeFlag::ILOCK);
 
             drop(inode);
-            return Ok(iref);
+            return Ok(iref.with_i_put());
         }
     }
 
@@ -268,7 +268,7 @@ static GLOBAL_INODE_TABLE: LazyLock<Spin<InodeTable>> =
 define_class_compat! {impl InodeTable {
     pub fn get(dev: DevId, ino: i32) -> Option<InodeRefCompat> {
         match GLOBAL_INODE_TABLE.lock().i_get(dev, ino) {
-            Ok(iref) => Some(inoderef_leak(iref)),
+            Ok(iref) => Some(inoderef_leak(iref.into_inner())),
             Err(err) => {
                 Userspace::get().set_error(err);
                 None
