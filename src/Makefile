@@ -4,7 +4,7 @@ out-bins := kernel.exe
 
 kernel.exe-objs =
 kernel.exe-hdrs = kernel.link.ld
-kernel.exe-libs = boot/objs.a dev/objs.a fs/objs.a proc/objs.a tty/objs.a \
+kernel.exe-libs = boot/objs.a dev/objs.a proc/objs.a tty/objs.a \
 		  interrupt/objs.a kernel/objs.a machine/objs.a mm/objs.a \
 		  libyrosstd/objs.a $(rust-target-dir)/librust_kernel.a
 kernel.exe-LDFLAGS := --whole-archive -m elf_i386 -T kernel.link.ld -static
