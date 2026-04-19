@@ -448,7 +448,7 @@ impl Inode {
         let buf = fs::global_file_system()
             .alloc(dev)
             .map_err(map_fs_alloc_error)?;
-        Ok(buf.b_blkno)
+        Ok(unsafe { (*buf).b_blkno })
     }
 
     pub fn open_i(&self, mode: u32) -> Result<(), PosixError> {
