@@ -72,14 +72,10 @@ public:
 	void LoadSuperBlock();
 
 	/*
-	 * @comment 根据文件存储设备的设备号dev获取
-	 * 该文件系统的SuperBlock
-	 */
-	SuperBlock* GetFS(short dev);
-	/*
 	 * @comment 检查文件系统是否只读
 	 */
 	bool IsReadOnly(short dev);
+
 	/*
 	 * @comment 将SuperBlock对象的内存副本更新到
 	 * 存储设备的SuperBlock中去

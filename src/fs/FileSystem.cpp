@@ -8,7 +8,6 @@
 #include "fs_defines.h"
 
 extern "C" bool FileSystem_load_super_block();
-extern "C" bool FileSystem_get_fs(short, SuperBlock*);
 extern "C" bool FileSystem_is_readonly(short);
 extern "C" void FileSystem_update();
 extern "C" Inode* FileSystem_i_alloc(short);
@@ -50,15 +49,6 @@ void FileSystem::LoadSuperBlock()
 {
 	if (!FileSystem_load_super_block())
                 Utility::Panic("Load SuperBlock Error....!\n");
-}
-
-SuperBlock* FileSystem::GetFS(short dev)
-{
-	if(FileSystem_get_fs(dev, &g_spb))
-                return &g_spb;
-
-	Utility::Panic("No File System!");
-	return NULL;
 }
 
 bool FileSystem::IsReadOnly(short dev)

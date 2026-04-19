@@ -516,22 +516,6 @@ define_class_compat! {impl FileSystem {
         fs::global_file_system().load_super_block().is_ok()
     }
 
-    pub fn get_fs(dev: DevId, super_block: *mut SuperBlock) -> bool {
-        if super_block.is_null() {
-            return false;
-        }
-
-        let Ok(spb) = fs::global_file_system().get_fs(dev) else {
-            return false;
-        };
-
-        unsafe {
-            super_block.write(*spb.lock());
-        }
-
-        true
-    }
-
     pub fn is_readonly(dev: DevId) -> bool {
         let Ok(spb) = fs::global_file_system().get_fs(dev) else {
             Userspace::get().set_error(PosixError::EIO);
