@@ -291,9 +291,12 @@ void FileManager::Stat1(Inode* pInode, unsigned long statBuf)
 	pInode->IUpdate(Time::time);
 	pBuf = bufMgr.Bread(pInode->i_dev, fs::INODE_SECTOR_OFF + pInode->i_number / FileSystem::INODE_NUMBER_PER_SECTOR );
 
+	constexpr unsigned long DISK_INODE_SIZE = 64;
+
 	/* 将p指向缓存区中编号为inumber外存Inode的偏移位置 */
-	unsigned char* p = pBuf->b_addr + (pInode->i_number % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
-	Utility::DWordCopy( (int *)p, (int *)statBuf, sizeof(DiskInode)/sizeof(int) );
+	unsigned char* p = pBuf->b_addr +
+		(pInode->i_number % FileSystem::INODE_NUMBER_PER_SECTOR) * DISK_INODE_SIZE;
+	Utility::DWordCopy( (int *)p, (int *)statBuf, DISK_INODE_SIZE /sizeof(int) );
 
 	bufMgr.Brelse(pBuf);
 }
