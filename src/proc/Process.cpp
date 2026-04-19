@@ -208,7 +208,7 @@ void Process::Exit()
 		File* pFile = NULL;
 		if ( (pFile = OpenFiles_get_file(i)) != NULL )
 		{
-			OpenFileTable_f_close(Kernel::Instance().GetFileManager().m_OpenFileTable, pFile);
+			OpenFileTable_f_close(pFile);
 			OpenFiles_set_file(i, NULL);
 		}
 	}

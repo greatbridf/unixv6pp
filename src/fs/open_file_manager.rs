@@ -9,8 +9,12 @@ use crate::{
     }, proc::{Channel, PINOD, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 
+static GLOBAL_OPEN_FILE_TABLE: LazyLock<Spin<OpenFileTable>> =
+    LazyLock::new(|| Spin::new(OpenFileTable::new()));
+
 define_class_compat! {impl OpenFileTable {
-    pub fn f_alloc(&mut self) -> Option<FileRefCompat> {
+    pub fn f_alloc() -> Option<FileRefCompat> {
+        let mut this = GLOBAL_OPEN_FILE_TABLE.lock();
         let open_files = &mut Userspace::get().open_files;
         match this.f_alloc(open_files) {
             Ok((fd, fileref)) => {
@@ -24,14 +28,9 @@ define_class_compat! {impl OpenFileTable {
         }
     }
 
-    pub fn f_close(&mut self, file: FileRefCompat) {
+    pub fn f_close(file: FileRefCompat) {
+        let mut this = GLOBAL_OPEN_FILE_TABLE.lock();
         this.close_f(&file.own());
-    }
-
-    pub fn alloc() -> *const OpenFileTable {
-        let me = Box::new(OpenFileTable::new());
-
-        Box::into_raw(me)
     }
 }}
 

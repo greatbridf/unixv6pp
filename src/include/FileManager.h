@@ -168,9 +168,6 @@ public:
 
 	/* 对全局对象g_FileSystem的引用，该对象负责管理文件系统存储资源 */
 	FileSystem* m_FileSystem;
-
-	/* 对全局对象g_OpenFileTable的引用，该对象负责打开文件表项的管理 */
-	struct open_file_table* m_OpenFileTable;
 };
 
 

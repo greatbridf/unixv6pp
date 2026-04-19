@@ -16,12 +16,9 @@ FileManager::~FileManager()
 	//nothing to do here
 }
 
-extern "C" struct open_file_table* OpenFileTable_alloc();
-
 void FileManager::Initialize()
 {
 	this->m_FileSystem = &Kernel::Instance().GetFileSystem();
-	this->m_OpenFileTable = OpenFileTable_alloc();
 }
 
 /*
@@ -140,7 +137,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 	pInode->Prele();
 
 	/* 分配打开文件控制块File结构 */
-	File* pFile = OpenFileTable_f_alloc(this->m_OpenFileTable);
+	File* pFile = OpenFileTable_f_alloc();
 	if ( NULL == pFile )
 	{
 		InodeTable_put(pInode);
@@ -186,7 +183,7 @@ void FileManager::Close()
 
 	/* 释放打开文件描述符fd，递减File结构引用计数 */
 	OpenFiles_set_file(fd, NULL);
-	OpenFileTable_f_close(this->m_OpenFileTable, pFile);
+	OpenFileTable_f_close(pFile);
 }
 
 void FileManager::Seek()
@@ -392,7 +389,7 @@ void FileManager::Pipe()
 	}
 
 	/* 分配读管道的File结构 */
-	pFileRead = OpenFileTable_f_alloc(this->m_OpenFileTable);
+	pFileRead = OpenFileTable_f_alloc();
 	if ( NULL == pFileRead )
 	{
 		InodeTable_put(pInode);
@@ -402,7 +399,7 @@ void FileManager::Pipe()
 	fd[0] = User_get_ar0()[User::EAX];
 
 	/* 分配写管道的File结构 */
-	pFileWrite = OpenFileTable_f_alloc(this->m_OpenFileTable);
+	pFileWrite = OpenFileTable_f_alloc();
 	if ( NULL == pFileWrite )    /*若分配失败，擦除管道读端相关的所有打开文件结构*/
 	{
 		pFileRead->f_count = 0;
