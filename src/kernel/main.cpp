@@ -309,12 +309,7 @@ extern "C" void next()
 
 	Diagnose::Write("test \n");
 
-	/*  初始化rootDirInode和用户当前工作目录，以便NameI()正常工作 */
-	FileManager& fileMgr = Kernel::Instance().GetFileManager();
-
-	//fileMgr.rootDirInode = g_InodeTable.IGet(DeviceManager::ROOTDEV, FileSystem::ROOTINO);
-	fileMgr.rootDirInode = InodeTable_get(DeviceManager::ROOTDEV, 1);
-	fileMgr.rootDirInode->i_flag &= (~Inode::ILOCK);
+	/*  初始化用户当前工作目录，以便NameI()正常工作 */
 
 	User& us = Kernel::Instance().GetUser();
 	User_get_cdir() = InodeTable_get(DeviceManager::ROOTDEV, 1);

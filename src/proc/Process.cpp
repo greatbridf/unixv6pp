@@ -71,6 +71,13 @@ extern "C" void _sleep(unsigned long chan, int pri) {
         User_get_procp()->Sleep(chan, pri);
 }
 
+extern "C" void Process_psignal(Process* proc, int signal) {
+	if (proc == NULL) {
+		return;
+	}
+	proc->PSignal(signal);
+}
+
 void Process::Sleep(unsigned long chan, int pri)
 {
 	User& u = Kernel::Instance().GetUser();
