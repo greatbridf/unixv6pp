@@ -1,6 +1,6 @@
 include-path := $(abs_srctree)/src $(abs_srctree)/src/include $(abs_srctree)/fs
 
-objs := FileManager.o INode.o
+objs := FileManager.o
 
 include $(abs_srctree)/scripts/Makefile
 
