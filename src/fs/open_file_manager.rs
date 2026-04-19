@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use eonix_spin::Spin;
 use eonix_sync_base::LazyLock;
 use kernel_macros::define_class_compat;

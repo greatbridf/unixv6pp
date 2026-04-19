@@ -3,7 +3,7 @@ use kernel_macros::define_class_compat;
 
 use crate::{
     constants::{PosixError, SIGMAX},
-    fs::{DirectoryEntry, IOParameter, Inode, InodeRef, OpenFiles},
+    fs::{DirectoryEntry, IOParameter, Inode, OpenFiles},
 };
 
 #[derive(Clone, Copy)]

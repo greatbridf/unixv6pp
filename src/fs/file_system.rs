@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{array, ffi::c_void, ptr};
+use core::{array, ptr};
 use eonix_spin::Spin;
 
 use kernel_macros::define_class_compat;

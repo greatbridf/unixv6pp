@@ -1,14 +1,13 @@
 use crate::{
     constants::PosixError, dev::{
-        block_device::block_device_for_dev, buffer::{Buf, Buffer, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO, global_buffer_manager}, char_device::{char_device_for_dev, char_device_read, char_device_write}
+        block_device::block_device_for_dev, buffer::{Buffer, DevId, LogicalBlock, PhysicalBlock}, buffer_manager::{PPIPE, PRIBIO, global_buffer_manager}, char_device::{char_device_for_dev, char_device_read, char_device_write}
     }, fs::{
-        self, FileRef, IOParameter, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem
+        self, FileRef, IOParameter, InodeRef, file::{FileFlags, FileRefCompat, InodeRefCompat}, file_system::FileSystem, global_file_system
     }, proc::{Channel, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 use alloc::sync::Arc;
 use bitflags::bitflags;
 use kernel_macros::define_class_compat;
-use core::ptr::NonNull;
 use eonix_spin::{NoContext, Spin, SpinGuard};
 
 bitflags! {
@@ -354,12 +353,8 @@ impl Inode {
     }
 
     fn alloc_blk(&mut self) -> Option<(PhysicalBlock, Buffer)> {
-        extern "C" {
-            fn compat_filesys_alloc(dev: DevId) -> Option<NonNull<Buf>>;
-        }
-
         Some(unsafe {
-            let buf = Buffer::new(compat_filesys_alloc(self.i_dev)?.as_ptr());
+            let buf = Buffer::new(global_file_system().alloc(self.i_dev).ok()?);
             assert_ne!(buf.phyblk(), PhysicalBlock::ZERO);
             (buf.phyblk(), buf)
         })
@@ -498,20 +493,9 @@ impl Inode {
             return;
         }
 
-        extern "C" {
-            fn compat_fs_readonly(dev: DevId) -> bool;
-        }
-
-        if (unsafe { compat_fs_readonly(self.i_dev) }) {
+        if global_file_system().get_fs(self.i_dev).is_ok_and(|sb| sb.lock().is_readonly()) {
             return;
         }
-
-        // if fs::global_file_system()
-        //     .get_fs(self.i_dev)
-        //     .is_ok_and(|spb| spb.lock().is_readonly())
-        // {
-        //     return;
-        // }
 
         let sector = PhysicalBlock(FileSystem::INODE_ZONE_START_SECTOR as u32
             + self.i_number as u32 / FileSystem::INODE_NUMBER_PER_SECTOR as u32);
@@ -547,13 +531,7 @@ impl Inode {
             return;
         }
 
-        unsafe {
-            extern "C" {
-                fn compat_filesys_free(dev: DevId, blk: PhysicalBlock);
-            }
-
-            compat_filesys_free(self.i_dev, blk);
-        }
+        global_file_system().free(self.i_dev, blk.0 as _);
     }
 
     fn release_table(&self, table_blk: PhysicalBlock, level: usize) {
