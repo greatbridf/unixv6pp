@@ -63,7 +63,6 @@ FileSystem::~FileSystem()
 
 void FileSystem::Initialize()
 {
-	this->m_BufferManager = &Kernel::Instance().GetBufferManager();
 	this->updlock = 0;
 }
 

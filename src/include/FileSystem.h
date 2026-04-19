@@ -143,7 +143,6 @@ public:
 	Mount m_Mount[NMOUNT];		/* 文件系统装配块表，Mount[0]用于根文件系统 */
 
 private:
-	BufferManager* m_BufferManager;		/* FileSystem类需要缓存管理模块(BufferManager)提供的接口 */
 	int updlock;				/* Update()函数的锁，该函数用于同步内存各个SuperBlock副本以及，
 								被修改过的内存Inode。任一时刻只允许一个进程调用该函数 */
 };
