@@ -6,13 +6,13 @@ use bitflags::bitflags;
 use kernel_macros::define_class_compat;
 
 use crate::{
-    compat::compat_get_time, dev::{
+    constants::PosixError, compat::compat_get_time, dev::{
         buffer::{Buf, DevId, PhysicalBlock},
         buffer_manager::global_buffer_manager,
         device_manager::ROOTDEV,
     }, fs::{
-        self, InodeRef, InodeRefCompat, SuperBlockRef, inode::Inode
-    }, sync::SpinExt
+        self, InodeRef, InodeRefCompat, SuperBlockRef, inode::{DiskInode, Inode, inoderef_leak}
+    }, proc::{PINOD, sleep, wakeup_all}, sync::SpinExt, user::Userspace
 };
 
 bitflags! {
@@ -254,6 +254,78 @@ impl FileSystem {
         Ok(())
     }
 
+    fn scan_free_inodes(dev: DevId, isize: i32) -> Result<(i32, [i32; 100]), FileSystemError> {
+        let mut ino = -1;
+        let mut ninode = 0;
+        let mut inode = [0; 100];
+
+        for i in 0..isize {
+            let buf = global_buffer_manager()
+                .bread(
+                    dev,
+                    PhysicalBlock(Self::INODE_ZONE_START_SECTOR as u32 + i as u32),
+                )
+                .map_err(|_| FileSystemError::BufferUnavailable)?;
+
+            for disk_inode in buf.as_slice::<DiskInode>().iter().take(Self::INODE_NUMBER_PER_SECTOR)
+            {
+                ino += 1;
+
+                if !disk_inode.d_mode.is_empty() {
+                    continue;
+                }
+
+                if fs::global_inode_table().get(dev, ino).is_some() {
+                    continue;
+                }
+
+                inode[ninode as usize] = ino;
+                ninode += 1;
+
+                if ninode >= 100 {
+                    break;
+                }
+            }
+
+            if ninode >= 100 {
+                break;
+            }
+        }
+
+        Ok((ninode, inode))
+    }
+
+    fn map_error_to_posix(err: FileSystemError) -> PosixError {
+        match err {
+            FileSystemError::NoSpace => PosixError::ENOSPC,
+            FileSystemError::InodeUnavailable => PosixError::ENFILE,
+            _ => PosixError::EIO,
+        }
+    }
+
+    fn get_cpp_fs(mount: *mut CppMount, dev: DevId) -> *mut CppSuperBlock {
+        if mount.is_null() {
+            return ptr::null_mut();
+        }
+
+        for i in 0..FileSystem::NMOUNT {
+            let mount = unsafe { &mut *mount.add(i) };
+            if mount.m_spb.is_null() || mount.m_dev != dev.0 {
+                continue;
+            }
+
+            let spb = unsafe { &mut *mount.m_spb };
+            if spb.s_nfree > 100 || spb.s_ninode > 100 {
+                spb.s_nfree = 0;
+                spb.s_ninode = 0;
+            }
+
+            return mount.m_spb;
+        }
+
+        ptr::null_mut()
+    }
+
     pub fn new() -> Self {
         Self {
             m_mount: array::from_fn(|_| Mount::new()),
@@ -346,10 +418,14 @@ impl FileSystem {
             if sb.s_ninode <= 0 {
                 sb.s_flag.insert(SuperBlockFlag::S_ILOCK);
 
-                // TODO: scan on-disk inode area and refill sb.s_inode.
-                // for i in 0..sb.s_isize { ... }
+                let isize = sb.s_isize;
+                let refill_result = Self::scan_free_inodes(dev, isize);
 
                 sb.s_flag.remove(SuperBlockFlag::S_ILOCK);
+
+                let (ninode, inode) = refill_result?;
+                sb.s_ninode = ninode;
+                sb.s_inode = inode;
 
                 if sb.s_ninode <= 0 {
                     return Err(FileSystemError::NoSpace);
@@ -533,26 +609,7 @@ define_class_compat! {impl FileSystem {
     }
 
     pub fn get_fs(mount: *mut CppMount, dev: DevId) -> *mut CppSuperBlock {
-        if mount.is_null() {
-            return ptr::null_mut();
-        }
-
-        for i in 0..FileSystem::NMOUNT {
-            let mount = unsafe { &mut *mount.add(i) };
-            if mount.m_spb.is_null() || mount.m_dev != dev.0 {
-                continue;
-            }
-
-            let spb = unsafe { &mut *mount.m_spb };
-            if spb.s_nfree > 100 || spb.s_ninode > 100 {
-                spb.s_nfree = 0;
-                spb.s_ninode = 0;
-            }
-
-            return mount.m_spb;
-        }
-
-        ptr::null_mut()
+        FileSystem::get_cpp_fs(mount, dev)
     }
 
     pub fn update(mount: *mut CppMount, updlock: *mut i32) {
@@ -594,5 +651,87 @@ define_class_compat! {impl FileSystem {
         }
 
         let _ = global_buffer_manager().bflush(None);
+    }
+
+    pub fn i_alloc(mount: *mut CppMount, dev: DevId) -> Option<InodeRefCompat> {
+        let spb = FileSystem::get_cpp_fs(mount, dev);
+        if spb.is_null() {
+            Userspace::get().set_error(PosixError::EIO);
+            return None;
+        }
+
+        let spb = unsafe { &mut *spb };
+        let ilock_addr = (&raw const spb.s_ilock) as usize;
+
+        while spb.s_ilock != 0 {
+            sleep(ilock_addr, PINOD);
+        }
+
+        if spb.s_ninode <= 0 {
+            spb.s_ilock += 1;
+
+            let refill_result = FileSystem::scan_free_inodes(dev, spb.s_isize);
+
+            spb.s_ilock = 0;
+            wakeup_all(ilock_addr);
+
+            let (ninode, inode) = match refill_result {
+                Ok(result) => result,
+                Err(err) => {
+                    Userspace::get().set_error(FileSystem::map_error_to_posix(err));
+                    return None;
+                }
+            };
+
+            spb.s_ninode = ninode;
+            spb.s_inode = inode;
+
+            if spb.s_ninode <= 0 {
+                Userspace::get().set_error(PosixError::ENOSPC);
+                return None;
+            }
+        }
+
+        loop {
+            if spb.s_ninode <= 0 {
+                Userspace::get().set_error(PosixError::ENOSPC);
+                return None;
+            }
+
+            spb.s_ninode -= 1;
+            let ino = spb.s_inode[spb.s_ninode as usize];
+
+            let inode = match fs::global_inode_table().i_get(dev, ino) {
+                Ok(inode) => inode,
+                Err(err) => {
+                    Userspace::get().set_error(err);
+                    return None;
+                }
+            };
+
+            if inode.lock().i_mode.is_empty() {
+                inode.lock().clean();
+                spb.s_fmod = 1;
+                return Some(inoderef_leak(inode));
+            }
+
+            fs::global_inode_table().i_put(inode);
+        }
+    }
+
+    pub fn i_free(mount: *mut CppMount, dev: DevId, number: i32) {
+        let spb = FileSystem::get_cpp_fs(mount, dev);
+        if spb.is_null() {
+            return;
+        }
+
+        let spb = unsafe { &mut *spb };
+        if spb.s_ilock != 0 || spb.s_ninode >= 100 {
+            return;
+        }
+
+        spb.s_inode[spb.s_ninode as usize] = number;
+        spb.s_ninode += 1;
+        spb.s_fmod = 1;
     }
 }}

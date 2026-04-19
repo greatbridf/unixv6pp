@@ -10,6 +10,8 @@
 extern "C" bool FileSystem_load_super_block(Mount*, SuperBlock*);
 extern "C" SuperBlock* FileSystem_get_fs(Mount*, short);
 extern "C" void FileSystem_update(Mount*, int*);
+extern "C" Inode* FileSystem_i_alloc(Mount*, short);
+extern "C" void FileSystem_i_free(Mount*, short, int);
 
 /*==============================class SuperBlock===================================*/
 /* 系统全局超级块SuperBlock对象 */
@@ -85,146 +87,14 @@ void FileSystem::Update()
 
 Inode* FileSystem::IAlloc(short dev)
 {
-	SuperBlock* sb;
-	Buf* pBuf;
-	Inode* pNode;
-	User& u = Kernel::Instance().GetUser();
-	int ino;	/* 分配到的空闲外存Inode编号 */
-
-	/* 获取相应设备的SuperBlock内存副本 */
-	sb = this->GetFS(dev);
-
-	/* 如果SuperBlock空闲Inode表被上锁，则睡眠等待至解锁 */
-	while(sb->s_ilock)
-	{
-		User_get_procp()->Sleep((unsigned long)&sb->s_ilock, ProcessManager::PINOD);
-	}
-
-	/*
-	 * SuperBlock直接管理的空闲Inode索引表已空，
-	 * 必须到磁盘上搜索空闲Inode。先对inode列表上锁，
-	 * 因为在以下程序中会进行读盘操作可能会导致进程切换，
-	 * 其他进程有可能访问该索引表，将会导致不一致性。
-	 */
-	if(sb->s_ninode <= 0)
-	{
-		/* 空闲Inode索引表上锁 */
-		sb->s_ilock++;
-
-		/* 外存Inode编号从0开始，这不同于Unix V6中外存Inode从1开始编号 */
-		ino = -1;
-
-		/* 依次读入磁盘Inode区中的磁盘块，搜索其中空闲外存Inode，记入空闲Inode索引表 */
-		for(int i = 0; i < sb->s_isize; i++)
-		{
-			pBuf = this->m_BufferManager->Bread(dev, fs::INODE_SECTOR_OFF + i);
-
-			/* 获取缓冲区首址 */
-			int* p = (int *)pBuf->b_addr;
-
-			/* 检查该缓冲区中每个外存Inode的i_mode != 0，表示已经被占用 */
-			for(int j = 0; j < FileSystem::INODE_NUMBER_PER_SECTOR; j++)
-			{
-				ino++;
-
-				int mode = *( p + j * sizeof(DiskInode)/sizeof(int) );
-
-				/* 该外存Inode已被占用，不能记入空闲Inode索引表 */
-				if(mode != 0)
-					continue;
-
-				/*
-				 * 如果外存inode的i_mode==0，此时并不能确定
-				 * 该inode是空闲的，因为有可能是内存inode没有写到
-				 * 磁盘上,所以要继续搜索内存inode中是否有相应的项
-				 */
-				if(!InodeTable_is_loaded(dev, ino))
-				{
-					/* 该外存Inode没有对应的内存拷贝，将其记入空闲Inode索引表 */
-					sb->s_inode[sb->s_ninode++] = ino;
-
-					/* 如果空闲索引表已经装满，则不继续搜索 */
-					if(sb->s_ninode >= 100)
-						break;
-				}
-			}
-
-			/* 至此已读完当前磁盘块，释放相应的缓存 */
-			this->m_BufferManager->Brelse(pBuf);
-
-			/* 如果空闲索引表已经装满，则不继续搜索 */
-			if(sb->s_ninode >= 100)
-				break;
-		}
-		/* 解除对空闲外存Inode索引表的锁，唤醒因为等待锁而睡眠的进程 */
-		sb->s_ilock = 0;
-		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_ilock);
-
-		/* 如果在磁盘上没有搜索到任何可用外存Inode，返回NULL */
-		if(sb->s_ninode <= 0)
-		{
-			Diagnose::Write("No Space On %d !\n", dev);
-			User_get_error() = User::ENOSPC;
-			return NULL;
-		}
-	}
-
-	/*
-	 * 上面部分已经保证，除非系统中没有可用外存Inode，
-	 * 否则空闲Inode索引表中必定会记录可用外存Inode的编号。
-	 */
-	while(true)
-	{
-		/* 从索引表“栈顶”获取空闲外存Inode编号 */
-		ino = sb->s_inode[--sb->s_ninode];
-
-		/* 将空闲Inode读入内存 */
-		pNode = InodeTable_get(dev, ino);
-		/* 未能分配到内存inode */
-		if (!pNode)
-			return NULL;
-
-		/* 如果该Inode空闲,清空Inode中的数据 */
-		if (0 == pNode->i_mode)
-		{
-			pNode->Clean();
-			/* 设置SuperBlock被修改标志 */
-			sb->s_fmod = 1;
-			return pNode;
-		}
-		else	/* 如果该Inode已被占用 */
-		{
-			InodeTable_put(pNode);
-			continue;	/* while循环 */
-		}
-	}
-	return NULL;	/* GCC likes it! */
+	this->GetFS(dev);
+	return FileSystem_i_alloc(&this->m_Mount[0], dev);
 }
 
 void FileSystem::IFree(short dev, int number)
 {
-	SuperBlock* sb;
-
-	sb = this->GetFS(dev);	/* 获取相应设备的SuperBlock内存副本 */
-
-	/*
-	 * 如果超级块直接管理的空闲Inode表上锁，
-	 * 则释放的外存Inode散落在磁盘Inode区中。
-	 */
-	if(sb->s_ilock)
-		return;
-
-	/*
-	 * 如果超级块直接管理的空闲外存Inode超过100个，
-	 * 同样让释放的外存Inode散落在磁盘Inode区中。
-	 */
-	if(sb->s_ninode >= 100)
-		return;
-
-	sb->s_inode[sb->s_ninode++] = number;
-
-	/* 设置SuperBlock被修改标志 */
-	sb->s_fmod = 1;
+	this->GetFS(dev);
+	FileSystem_i_free(&this->m_Mount[0], dev, number);
 }
 
 Buf* FileSystem::Alloc(short dev)
