@@ -4,29 +4,29 @@
 #include "../stdint.h"
 
 /*
-	´´½¨Ê±¼ä£º2:44 PM 2008-8-9
-	ËµÃ÷£º¶ÔÓÚÊı¾İÀàĞÍµÄtypedef
+	åˆ›å»ºæ—¶é—´ï¼š2:44 PM 2008-8-9
+	è¯´æ˜ï¼šå¯¹äºæ•°æ®ç±»å‹çš„typedef
 */
 
 /*
-	ÒÔÏÂ¶¨ÒåÊı¾İÀàĞÍ×Ö½Ú³¤¶ÈÎªÔÚgccÖĞÓÃsizeof»ñµÃµÄ½á¹û
+	ä»¥ä¸‹å®šä¹‰æ•°æ®ç±»å‹å­—èŠ‚é•¿åº¦ä¸ºåœ¨gccä¸­ç”¨sizeofè·å¾—çš„ç»“æœ
 */
-typedef unsigned char	uchar;		/*1¸ö×Ö½Ú³¤*/
-typedef unsigned char	BYTE;		/*1¸ö×Ö½Ú³¤*/
-typedef unsigned char	UCHAR;		/*1¸ö×Ö½Ú³¤*/
+typedef unsigned char	uchar;		/*1ä¸ªå­—èŠ‚é•¿*/
+typedef unsigned char	BYTE;		/*1ä¸ªå­—èŠ‚é•¿*/
+typedef unsigned char	UCHAR;		/*1ä¸ªå­—èŠ‚é•¿*/
 
-typedef unsigned short	ushort;		/*2¸ö×Ö½Ú³¤*/
-typedef unsigned short	WORD;		/*2¸ö×Ö½Ú³¤*/
-typedef unsigned short	USHORT;		/*2¸ö×Ö½Ú³¤*/
+typedef unsigned short	ushort;		/*2ä¸ªå­—èŠ‚é•¿*/
+typedef unsigned short	WORD;		/*2ä¸ªå­—èŠ‚é•¿*/
+typedef unsigned short	USHORT;		/*2ä¸ªå­—èŠ‚é•¿*/
 
-typedef unsigned int	uint;		/*4¸ö×Ö½Ú³¤*/
-typedef unsigned int	DWORD;		/*4¸ö×Ö½Ú³¤*/
-typedef unsigned int	UINT;		/*4¸ö×Ö½Ú³¤*/
+typedef unsigned int	uint;		/*4ä¸ªå­—èŠ‚é•¿*/
+typedef unsigned int	DWORD;		/*4ä¸ªå­—èŠ‚é•¿*/
+typedef unsigned int	UINT;		/*4ä¸ªå­—èŠ‚é•¿*/
 
 /*
-	Äã¾õµÃÓÃÄÇÒ»Ì×¶¨Òå±È½ÏºÃ£¬ÄÄ¸ö¿´ÆğÀ´±È½Ï¡±Õı¹æ¡°¡£¡£¡££¿ 
+	ä½ è§‰å¾—ç”¨é‚£ä¸€å¥—å®šä¹‰æ¯”è¾ƒå¥½ï¼Œå“ªä¸ªçœ‹èµ·æ¥æ¯”è¾ƒâ€æ­£è§„â€œã€‚ã€‚ã€‚ï¼Ÿ 
 
-	    GTY ´ğ£ºÎÒ¾õµÃ ../stdint.h ÀïÃæµÄ¸üÊæÊÊ :D
+	    GTY ç­”ï¼šæˆ‘è§‰å¾— ../stdint.h é‡Œé¢çš„æ›´èˆ’é€‚ :D
 */
 
 

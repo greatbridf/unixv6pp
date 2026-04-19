@@ -6,7 +6,7 @@ void CMOSTime::ReadCMOSTime( struct SystemTime* pTime )
 {
 	int value;
 	
-	/* 等待直到CMOS的RTC就绪，才开始读取时间和日期 */
+	/* 绛夊緟鐩村埌CMOS鐨凴TC灏辩华锛屾墠寮�濮嬭鍙栨椂闂村拰鏃ユ湡 */
 	while( (value = ReadCMOSByte(CMOSTime::RTC_STATUS_REGISTER_A)) & CMOSTime::RTC_UPDATE_IN_PROGRESS )
 		;
 

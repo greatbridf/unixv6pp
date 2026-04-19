@@ -4,7 +4,7 @@
 class KeyboardInterrupt
 {
 public:
-	/* 键盘中断入口函数，其地址存放在IDT的键盘中断对应中断门 */
+	/* 閿洏涓柇鍏ュ彛鍑芥暟锛屽叾鍦板潃瀛樻斁鍦↖DT鐨勯敭鐩樹腑鏂搴斾腑鏂棬 */
 	static void KeyboardInterruptEntrance();
 };
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * Îª C ÓïÑÔÌá¹© bool Êı¾İÀàĞÍÖ§³Ö¡£
+ * ä¸º C è¯­è¨€æä¾› bool æ•°æ®ç±»å‹æ”¯æŒã€‚
  */
 
 #pragma once

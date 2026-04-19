@@ -6,7 +6,7 @@
 class MemoryDescriptor
 {
 public:
-	/* ÓÃ»§¿Õ¼ä´óĞ¡ 8M 0x0 - 0x800000 2 PageTable */
+	/* ç”¨æˆ·ç©ºé—´å¤§å° 8M 0x0 - 0x800000 2 PageTable */
 	static const unsigned int USER_SPACE_SIZE	= 0x800000; 
 	static const unsigned int USER_SPACE_PAGE_TABLE_CNT = 0x2;
 	static const unsigned long USER_SPACE_START_ADDRESS		= 0x0;
@@ -18,24 +18,24 @@ public:
 	~MemoryDescriptor();
 
 public:
-	/* ÉêÇë²¢³õÊ¼»¯PageDirectory£¬ÔÚ×öMap²Ù×÷Ç°Ê¹ÓÃ */
+	/* ç”³è¯·å¹¶åˆå§‹åŒ–PageDirectoryï¼Œåœ¨åšMapæ“ä½œå‰ä½¿ç”¨ */
 	void Initialize();
-	/* ÔÚÊÍ·Å½ø³ÌÊ±£¬ĞèÒªµ÷ÓÃ¸Ã²Ù×÷ÊÍ·Å±»Õ¼ÓÃµÄÒ³±í */
+	/* åœ¨é‡Šæ”¾è¿›ç¨‹æ—¶ï¼Œéœ€è¦è°ƒç”¨è¯¥æ“ä½œé‡Šæ”¾è¢«å ç”¨çš„é¡µè¡¨ */
 	void Release();
 
-	/* ÒÔÏÂº¯ÊıÓÃ»§Íê³É¶Ôuser½á¹¹ÖĞÒ³±íEntryµÄÌî³ä£¬¸ÃÒ³±íÔÚ½ø³ÌÇĞ»»Ê±Ìî³äÏÖÓĞµÄÒ³±í */
+	/* ä»¥ä¸‹å‡½æ•°ç”¨æˆ·å®Œæˆå¯¹userç»“æ„ä¸­é¡µè¡¨Entryçš„å¡«å……ï¼Œè¯¥é¡µè¡¨åœ¨è¿›ç¨‹åˆ‡æ¢æ—¶å¡«å……ç°æœ‰çš„é¡µè¡¨ */
 	void MapTextEntrys(unsigned long textStartAddress, unsigned long textSize, unsigned long textPageIdxInPhyMemory);
 	void MapDataEntrys(unsigned long dataStartAddress, unsigned long dataSize, unsigned long dataPageIdxInPhyMemory);
 	void MapStackEntrys(unsigned long stackSize, unsigned long stackPageIdxInPhyMemory);
 
-	/* @comment Ô­unixv6ÖĞsureg()º¯Êı.Ô­º¯ÊıÓÃÓÚ½«½ø³ÌuÇøÖĞµÄuisaºÍuisdÁ½Êı×éÖĞµÄÄÚ´æÒ³Ó³ÉäÊı¾İÓ³Éäµ½UISAÓëUISD
-	 * ¼Ä´æÆ÷ÖĞ.ÓÉÓÚÌåÏµ½á¹¹µÄ¹ØÏµ£¬Ê¹ÓÃMapToPageTable()º¯Êı½«MemoryDescriptorÖĞµÄÒ³±ícopyµ½²Ù×÷ÏµÍ³ÕıÊ¹ÓÃµÄ
-	 * PageTableÖĞ£¬È»ºóÊ¹ÓÃFlushPageDirectory()º¯ÊıÍê³ÉÒ³±íÓ³Éä£¬ĞÂÉÏÌ¨½ø³ÌµÄÓÃ»§ÇøÊı¾İÓ³ÉäÍê³É */
+	/* @comment åŸunixv6ä¸­sureg()å‡½æ•°.åŸå‡½æ•°ç”¨äºå°†è¿›ç¨‹uåŒºä¸­çš„uisaå’Œuisdä¸¤æ•°ç»„ä¸­çš„å†…å­˜é¡µæ˜ å°„æ•°æ®æ˜ å°„åˆ°UISAä¸UISD
+	 * å¯„å­˜å™¨ä¸­.ç”±äºä½“ç³»ç»“æ„çš„å…³ç³»ï¼Œä½¿ç”¨MapToPageTable()å‡½æ•°å°†MemoryDescriptorä¸­çš„é¡µè¡¨copyåˆ°æ“ä½œç³»ç»Ÿæ­£ä½¿ç”¨çš„
+	 * PageTableä¸­ï¼Œç„¶åä½¿ç”¨FlushPageDirectory()å‡½æ•°å®Œæˆé¡µè¡¨æ˜ å°„ï¼Œæ–°ä¸Šå°è¿›ç¨‹çš„ç”¨æˆ·åŒºæ•°æ®æ˜ å°„å®Œæˆ */
 	void MapToPageTable();
 
 	/* 
-	 * @comment Ô­unix v6ÖĞestabur()º¯Êı£¬ÓÃÓÚ½¨Á¢ÓÃ»§Ì¬µØÖ·¿Õ¼äµÄÏà¶ÔµØÖ·Ó³Éä±í£¬È»ºóµ÷ÓÃ
-	 * MapToPageTable()º¯Êı½«Ïà¶ÔµØÖ·Ó³Éä±í¼ÓÔØµ½ÓÃ»§Ì¬Ò³±íÖĞ¡£
+	 * @comment åŸunix v6ä¸­estabur()å‡½æ•°ï¼Œç”¨äºå»ºç«‹ç”¨æˆ·æ€åœ°å€ç©ºé—´çš„ç›¸å¯¹åœ°å€æ˜ å°„è¡¨ï¼Œç„¶åè°ƒç”¨
+	 * MapToPageTable()å‡½æ•°å°†ç›¸å¯¹åœ°å€æ˜ å°„è¡¨åŠ è½½åˆ°ç”¨æˆ·æ€é¡µè¡¨ä¸­ã€‚
 	 */
 	bool EstablishUserPageTable(unsigned long textVirtualAddress, unsigned long textSize, unsigned long dataVirtualAddress, unsigned long dataSize, unsigned long stackSize);
 	void ClearUserPageTable();
@@ -48,26 +48,26 @@ public:
 
 private:
 
-	/* @commentÉèÖÃÒ³±íÄ¿Â¼Ïî
+	/* @commentè®¾ç½®é¡µè¡¨ç›®å½•é¡¹
 	 * @param
-	 * unsigned long virtualAddress:	ĞéÄâµØÖ·(ÒÔ×Ö½ÚÎªµ¥Î») 
-	 * unsigned int size:				ĞèÒªÓ³ÉäµÄĞéÄâµØÖ·´óĞ¡(ÒÔ×Ö½ÚÎªµ¥Î») 
-	 * unsigned long phyPageIdx:		ÆäÊµÎïÀíÒ³Ë÷ÒıºÅ(Ò³Îªµ¥Î»)		
-	 * bool isReadWrite:				Ò³ÊôĞÔ£¬trueÎª¿É¶Á¿ÉĞ´Ò³
+	 * unsigned long virtualAddress:	è™šæ‹Ÿåœ°å€(ä»¥å­—èŠ‚ä¸ºå•ä½) 
+	 * unsigned int size:				éœ€è¦æ˜ å°„çš„è™šæ‹Ÿåœ°å€å¤§å°(ä»¥å­—èŠ‚ä¸ºå•ä½) 
+	 * unsigned long phyPageIdx:		å…¶å®ç‰©ç†é¡µç´¢å¼•å·(é¡µä¸ºå•ä½)		
+	 * bool isReadWrite:				é¡µå±æ€§ï¼Œtrueä¸ºå¯è¯»å¯å†™é¡µ
 	 */
 	unsigned int MapEntry(unsigned long virtualAddress, unsigned int size, unsigned long phyPageIdx, bool isReadWrite);
 	
 public:
 	PageTable*		m_UserPageTableArray;
-	/* ÒÔÏÂÊı¾İ¶¼ÊÇÏßĞÔµØÖ· */
-	unsigned long	m_TextStartAddress;	/* ´úÂë¶ÎÆğÊ¼µØÖ· */
-	unsigned long	m_TextSize;			/* ´úÂë¶Î³¤¶È */
+	/* ä»¥ä¸‹æ•°æ®éƒ½æ˜¯çº¿æ€§åœ°å€ */
+	unsigned long	m_TextStartAddress;	/* ä»£ç æ®µèµ·å§‹åœ°å€ */
+	unsigned long	m_TextSize;			/* ä»£ç æ®µé•¿åº¦ */
 
-	unsigned long	m_DataStartAddress; /* Êı¾İ¶ÎÆğÊ¼µØÖ· */
-	unsigned long	m_DataSize;			/* Êı¾İ¶Î³¤¶È */
+	unsigned long	m_DataStartAddress; /* æ•°æ®æ®µèµ·å§‹åœ°å€ */
+	unsigned long	m_DataSize;			/* æ•°æ®æ®µé•¿åº¦ */
 
-	unsigned long	m_StackSize;		/* Õ»¶Î³¤¶È */
-	//unsigned long	m_HeapSize;			/* ¶Ñ¶Î³¤¶È */
+	unsigned long	m_StackSize;		/* æ ˆæ®µé•¿åº¦ */
+	//unsigned long	m_HeapSize;			/* å †æ®µé•¿åº¦ */
 };
 
 #endif

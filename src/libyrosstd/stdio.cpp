@@ -1,9 +1,9 @@
 // https://github.com/FlowerBlackG/YurongOS/blob/i386-archive-v0.0.1/src/lib/stdio.cpp
 /*
- * ±ê×¼ÊäÈëÊä³öÊµÏÖ¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ13ÈÕ¡£
+ * æ ‡å‡†è¾“å…¥è¾“å‡ºå®ç°ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ13æ—¥ã€‚
  * 
- * ²Î¿¼£º
+ * å‚è€ƒï¼š
  *   https://pubs.opengroup.org/onlinepubs/9699919799/
  *   https://cplusplus.com/reference/cstdio/sprintf/
  *   https://cplusplus.com/reference/cstdio/vsprintf/
@@ -25,7 +25,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
     
     // %[flags][width][.precision][length]specifier
 
-    // flag ¶¨Òå¡£
+    // flag å®šä¹‰ã€‚
 #define __VPF_FLAG_NULL 0
 #define __VPF_FLAG_ZERO_BIT 1
 #define __VPF_FLAG_SPACE_BIT 2
@@ -33,7 +33,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 #define __VPF_FLAG_MINUS_BIT 8
 #define __VPF_FLAG_NUMBER_SIGN_BIT 16
 
-    // ³¤¶ÈÏŞ¶¨·û¶¨Òå¡£
+    // é•¿åº¦é™å®šç¬¦å®šä¹‰ã€‚
 #define __VPF_LENGTH_NULL 0
 #define __VPF_LENGTH_CHAR 1
 #define __VPF_LENGTH_SHORT 2
@@ -44,10 +44,10 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 #define __VPF_LENGTH_PTRDIFF_T 7
 #define __VPF_LENGTH_LONG_DOUBLE 8
 
-    // ¾«¶È¡£
+    // ç²¾åº¦ã€‚
 #define __VPF_PRECISION_NULL -1
 
-    // ¿í¶È¡£
+    // å®½åº¦ã€‚
 #define __VPF_WIDTH_NULL -1
 
 
@@ -62,8 +62,8 @@ int vsprintf(char* buffer, const char* format, va_list args) {
     int width;
     int precision;
 
-    // ¹¤¾ß±Õ°üº¯Êı¡£
-    // Æ´½ÓÒ»¸ö16½øÖÆÊı¡£×Ô¶¯²¹³ä¶ÔÆëµÈ¡£
+    // å·¥å…·é—­åŒ…å‡½æ•°ã€‚
+    // æ‹¼æ¥ä¸€ä¸ª16è¿›åˆ¶æ•°ã€‚è‡ªåŠ¨è¡¥å……å¯¹é½ç­‰ã€‚
     auto catHex = [&] (uint64_t hexVal, size_t nbytes, bool upper) {
 
         char tmpStr[32];
@@ -120,7 +120,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 
     while (*pFmt != NULL) {
 
-        /* ------------ °Ù·ÖºÅ %. ------------ */
+        /* ------------ ç™¾åˆ†å· %. ------------ */
 
         if (*pFmt == '%') {
             pPrecisionSign = pFmt++;
@@ -189,13 +189,13 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                     precision += *(pFmt++) - '0';
                 }
             } else {
-                // ¸ñÊ½½âÎöÒì³£¡£
+                // æ ¼å¼è§£æå¼‚å¸¸ã€‚
                 return -1;
             }
         }
 
 
-        /* ------------ ³¤¶ÈÏŞ¶¨·û¡£ ------------ */
+        /* ------------ é•¿åº¦é™å®šç¬¦ã€‚ ------------ */
 
         if (*pFmt == 'h' && *(pFmt + 1) == 'h') {
             pFmt += 2;
@@ -224,7 +224,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
         }
 
 
-        /* ------------ ÀàĞÍÏŞ¶¨·û¡£ ------------ */
+        /* ------------ ç±»å‹é™å®šç¬¦ã€‚ ------------ */
 
         char specifier = *(pFmt++);
         
@@ -233,7 +233,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                 *(pBuf++) = '%';
                 continue;
 
-            // ÕûÊıÏµÁĞ¡£
+            // æ•´æ•°ç³»åˆ—ã€‚
 
             case 'd':
             case 'i': 
@@ -242,7 +242,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                 char tmp[64];
                 char* pTmp = tmp;
 
-                // todo: ÎŞ·¨´¦Àí long long µÈ 64 Î»Êı¾İÀàĞÍ¡£
+                // todo: æ— æ³•å¤„ç† long long ç­‰ 64 ä½æ•°æ®ç±»å‹ã€‚
                 uint8_t base = (specifier == 'o' ? 8 : 10);
                 uint32_t mask;
                 uint32_t val;
@@ -272,7 +272,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 
                 char sign = NULL;
 
-                // ÅĞ¶ÏÊÇ·ñÎª¸ºÊı¡£
+                // åˆ¤æ–­æ˜¯å¦ä¸ºè´Ÿæ•°ã€‚
                 if (specifier == 'd' || specifier == 'i') {
                     if (
                         (lengthSpecifier == __VPF_LENGTH_CHAR && (char) val < 0)
@@ -287,7 +287,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                     }
                 }
                 
-                // ·Ç¸ºÇé¿ö£¬¾ö¶¨ÊÇ·ñÒªÇ¿ÖÆÉèÖÃ·ûºÅ¡£
+                // éè´Ÿæƒ…å†µï¼Œå†³å®šæ˜¯å¦è¦å¼ºåˆ¶è®¾ç½®ç¬¦å·ã€‚
                 if (sign == NULL) {
                     if (flag & __VPF_FLAG_SPACE_BIT) {
                         sign = ' ';
@@ -296,7 +296,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                     }
                 }
 
-                // ÌáÈ¡¸÷Î»Êı×Ö¡£
+                // æå–å„ä½æ•°å­—ã€‚
                 if (val == 0) {
                     *(pTmp++) = '0';
                 } else while (val > 0) {
@@ -304,15 +304,15 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                     val /= base;
                 }
 
-                // 8½øÖÆ²¹³äÇ°×º0¡£
+                // 8è¿›åˆ¶è¡¥å……å‰ç¼€0ã€‚
                 if ((flag & __VPF_FLAG_NUMBER_SIGN_BIT) && specifier == 'o') {
                     *(pTmp++) = '0';
                 }
 
-                // Êı×Ö´®³¤¶È¡£
+                // æ•°å­—ä¸²é•¿åº¦ã€‚
                 int32_t len = pTmp - tmp;
 
-                // Ìî³ä´®³¤¶È¡£·ûºÅËãÔÚÌî³ä´®ÄÚ¡£
+                // å¡«å……ä¸²é•¿åº¦ã€‚ç¬¦å·ç®—åœ¨å¡«å……ä¸²å†…ã€‚
                 int32_t paddingLen = (precision > width ? precision : width);
                 paddingLen = (paddingLen > 0 ? paddingLen : 0);
 
@@ -320,7 +320,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 
                 paddingLen = (paddingLen > 0 ? paddingLen : 0);
 
-                // Êä³öÇ°×ºÌî³ä¡£
+                // è¾“å‡ºå‰ç¼€å¡«å……ã€‚
                 if (paddingLen && (flag & __VPF_FLAG_ZERO_BIT || !(flag & __VPF_FLAG_MINUS_BIT)))
                 {
 
@@ -343,12 +343,12 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                     *(pBuf++) = sign;
                 }
 
-                // Êä³öÊı×Ö¡£
+                // è¾“å‡ºæ•°å­—ã€‚
                 while (pTmp > tmp) {
                     *(pBuf++) = *(--pTmp);
                 }
 
-                // ºó×ºÌî³ä¿Õ¸ñ¡£
+                // åç¼€å¡«å……ç©ºæ ¼ã€‚
                 if (paddingLen && !(flag & __VPF_FLAG_ZERO_BIT) && flag & __VPF_FLAG_MINUS_BIT)
                 {
                     int32_t len = paddingLen - !!(sign != NULL);
@@ -359,7 +359,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                 break;
             }
         
-            // 16 ½øÖÆÎŞ·ûºÅÕûÊı¡£
+            // 16 è¿›åˆ¶æ— ç¬¦å·æ•´æ•°ã€‚
             case 'x':
             case 'X': {
                 if (lengthSpecifier == __VPF_LENGTH_CHAR) {
@@ -382,12 +382,12 @@ int vsprintf(char* buffer, const char* format, va_list args) {
             }
 
 
-            // ¸¡µãÏµÁĞ¡£
+            // æµ®ç‚¹ç³»åˆ—ã€‚
             
-            // ¸¡µãÏµÁĞÎ´ÊµÏÖ¡£ todo.
+            // æµ®ç‚¹ç³»åˆ—æœªå®ç°ã€‚ todo.
 
-            // char¡£
-            // lc ĞÎÊ½Î´ÊµÏÖ¡£todo.
+            // charã€‚
+            // lc å½¢å¼æœªå®ç°ã€‚todo.
             case 'c': {
                 int ch = va_arg(args, int);
 
@@ -406,7 +406,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                 break;
             }
 
-            // ×Ö·û´®¡£
+            // å­—ç¬¦ä¸²ã€‚
             case 's': {
                 char* spStr = va_arg(args, char*);
                 int32_t sLen = strlen(spStr);
@@ -441,7 +441,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                 break;
             }
 
-            // Ö¸Õë¡£
+            // æŒ‡é’ˆã€‚
             case 'p': {
                 void* pointer = va_arg(args, void*);
                 uint64_t ui64pointer = (uint64_t) pointer;
@@ -449,12 +449,12 @@ int vsprintf(char* buffer, const char* format, va_list args) {
                 break;
             } 
 
-            // ¿Õ¡£
+            // ç©ºã€‚
             case 'n': //todo
                 break;
 
             default:
-                // ¸ñÊ½½âÎöÒì³£¡£
+                // æ ¼å¼è§£æå¼‚å¸¸ã€‚
                 return -1;
 
         } // switch (specifier)
@@ -465,7 +465,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
     *pBuf = '\0';
     return pBuf - buffer;
 
-    // È¡Ïû flag ¶¨Òå£¬·ÀÖ¹¸ÉÈÅºóĞø²Ù×÷¡£
+    // å–æ¶ˆ flag å®šä¹‰ï¼Œé˜²æ­¢å¹²æ‰°åç»­æ“ä½œã€‚
 #undef __VPF_FLAG_NULL
 #undef __VPF_FLAG_ZERO_BIT
 #undef __VPF_FLAG_SPACE_BIT
@@ -473,7 +473,7 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 #undef __VPF_FLAG_MINUS_BIT
 #undef __VPF_FLAG_NUMBER_SIGN_BIT
 
-    // È¡Ïû³¤¶ÈÏŞ¶¨·û¶¨Òå¡£
+    // å–æ¶ˆé•¿åº¦é™å®šç¬¦å®šä¹‰ã€‚
 #undef __VPF_LENGTH_NULL
 #undef __VPF_LENGTH_CHAR
 #undef __VPF_LENGTH_SHORT
@@ -484,10 +484,10 @@ int vsprintf(char* buffer, const char* format, va_list args) {
 #undef __VPF_LENGTH_PTRDIFF_T
 #undef __VPF_LENGTH_LONG_DOUBLE
 
-    // È¡Ïû¾«¶È¶¨Òå¡£
+    // å–æ¶ˆç²¾åº¦å®šä¹‰ã€‚
 #undef __VPF_PRECISION_NULL
 
-    // È¡Ïû¿í¶È¶¨Òå¡£
+    // å–æ¶ˆå®½åº¦å®šä¹‰ã€‚
 #undef __VPF_WIDTH_NULL
 
 } // int vsprintf(char* buffer, const char* format, va_list args)

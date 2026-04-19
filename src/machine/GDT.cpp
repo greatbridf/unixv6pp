@@ -25,7 +25,7 @@ void GDT::SetSegmentDescriptor(int index, SegmentDescriptor &segmentDescriptor)
 
 void GDT::FormGDTR(GDTR& gdtr)
 {
-	/* 在启用分页机制下，IDTR中存放的应当是线性地址，而非物理地址 */
+	/* 鍦ㄥ惎鐢ㄥ垎椤垫満鍒朵笅锛孖DTR涓瓨鏀剧殑搴斿綋鏄嚎鎬у湴鍧�锛岃�岄潪鐗╃悊鍦板潃 */
 	gdtr.m_BaseAddress = (unsigned int)this;
 	gdtr.m_Limit = 2048 - 1;
 }

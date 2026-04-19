@@ -2,47 +2,47 @@
 #define	ASSEMBLY_H
 
 /*
- * X86AssemblyÀà¶¨ÒåÁË¶Ôx86Æ½Ì¨ÖĞ²¿·ÖÌØÈ¨¼¶Ö¸ÁîµÄ³éÏó¡£
+ * X86Assemblyç±»å®šä¹‰äº†å¯¹x86å¹³å°ä¸­éƒ¨åˆ†ç‰¹æƒçº§æŒ‡ä»¤çš„æŠ½è±¡ã€‚
  * 
- * Ê¹ÓÃC++ Inline Assembly ·â×°lgdt, lidt, ltr, cli, 
- * stiµÈÖ¸Áî£¬ÓÃÓÚ½â¾öC++ÓïÑÔÎŞ·¨Í¨¹ı±àÒë²úÉúµÄÌØÈ¨¼¶
- * Ö¸Áî£¬Íê³É¿ª/¹ØÖĞ¶Ï¡¢¼ÓÔØgdt¡¢idtµÈÈÎÎñ¡£
+ * ä½¿ç”¨C++ Inline Assembly å°è£…lgdt, lidt, ltr, cli, 
+ * stiç­‰æŒ‡ä»¤ï¼Œç”¨äºè§£å†³C++è¯­è¨€æ— æ³•é€šè¿‡ç¼–è¯‘äº§ç”Ÿçš„ç‰¹æƒçº§
+ * æŒ‡ä»¤ï¼Œå®Œæˆå¼€/å…³ä¸­æ–­ã€åŠ è½½gdtã€idtç­‰ä»»åŠ¡ã€‚
 */
 
-/* Ë¢ĞÂÒ³±í£¬ÔÚÃ¿´Î¶ÔÒ³±í½øĞĞĞŞ¸ÄºóĞèÒªµ÷ÓÃ£¬ÖØĞÂ»º´æÒ³±í */
+/* åˆ·æ–°é¡µè¡¨ï¼Œåœ¨æ¯æ¬¡å¯¹é¡µè¡¨è¿›è¡Œä¿®æ”¹åéœ€è¦è°ƒç”¨ï¼Œé‡æ–°ç¼“å­˜é¡µè¡¨ */
 #define FlushPageDirectory()	\
 	__asm__ __volatile__(" movl %0, %%cr3" : : "r"(0x200000) );
 
 class X86Assembly
 {
 	public:
-		//ÔÊĞíÖĞ¶Ï
+		//å…è®¸ä¸­æ–­
 		static inline void STI()
 		{
 			__asm__ __volatile__("sti");
 		}
 		
-		//ÆÁ±ÎÖĞ¶Ï
+		//å±è”½ä¸­æ–­
 		static inline void CLI()
 		{
 			__asm__ __volatile__("cli");
 		}
 		
-		//lidtÖ¸Áî
+		//lidtæŒ‡ä»¤
 		static inline void LIDT(unsigned short idtr[3])
 		{
 			__asm__ __volatile__("lidt %0"::"m" (*idtr));
-			//ÌØ±ğÌáĞÑ£ºlidtÖ¸ÁîµÄ²Ù×÷ÊıÊÇ6×Ö½ÚµÄLimit+BaseAddress, ¶ø²»ÊÇÕâ6¸ö×Ö½ÚµÄÊ×µØÖ·
-			//ËùÒÔ¡°(*idtr)¡±ÖĞµÄ¡° * ¡±²»¿ÉÒÔÂ©µô£¡£¡£¡
+			//ç‰¹åˆ«æé†’ï¼šlidtæŒ‡ä»¤çš„æ“ä½œæ•°æ˜¯6å­—èŠ‚çš„Limit+BaseAddress, è€Œä¸æ˜¯è¿™6ä¸ªå­—èŠ‚çš„é¦–åœ°å€
+			//æ‰€ä»¥â€œ(*idtr)â€ä¸­çš„â€œ * â€ä¸å¯ä»¥æ¼æ‰ï¼ï¼ï¼
 		}
 		
-		//lgdtÖ¸Áî
+		//lgdtæŒ‡ä»¤
 		static inline void LGDT(unsigned short gdtr[3])
 		{
 			__asm__ __volatile__("lgdt %0"::"m" (*gdtr));
 		}
 
-		//ltrÖ¸Áî
+		//ltræŒ‡ä»¤
 		static inline void LTR(unsigned short tssSelector)
 		{
 			__asm__ __volatile__("mov %0, %%ax\n\tltr %%ax"::"m"(tssSelector));

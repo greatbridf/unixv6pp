@@ -1,4 +1,4 @@
-/* ÄÚºË¹¹½¨Á´½Ó½Å±¾¡£ */
+/* å†…æ ¸æ„å»ºé“¾æ¥è„šæœ¬ã€‚ */
 
 ENTRY(greatstart)
 
@@ -21,8 +21,8 @@ SECTIONS
         *(.data.*)
         . = ALIGN(4096);
 
-        /* ¹¹Ôìº¯ÊıÁĞ±í¡£
-           ²Î¿¼£ºhttps://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/text/ld.txt */
+        /* æ„é€ å‡½æ•°åˆ—è¡¨ã€‚
+           å‚è€ƒï¼šhttps://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/text/ld.txt */
         __CTOR_LIST__ = .;
         *(.init_array)
         *(.ctors)
@@ -30,7 +30,7 @@ SECTIONS
 
         . = ALIGN(4096);
 
-        /* Îö¹¹º¯ÊıÁĞ±í¡£ */
+        /* ææ„å‡½æ•°åˆ—è¡¨ã€‚ */
         __DTOR_LIST__ = .;
         *(.dtors)
         __DTOR_END__ = .;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * ÕûÊıÀàĞÍÍ·ÎÄ¼ş¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ2ÈÕ¡£
+ * æ•´æ•°ç±»å‹å¤´æ–‡ä»¶ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ2æ—¥ã€‚
  */
 
 #pragma once
@@ -16,7 +16,7 @@ typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 
-// ÓµÓĞ×î´ó¿í¶ÈµÄÕûÊıÀàĞÍ¡£
+// æ‹¥æœ‰æœ€å¤§å®½åº¦çš„æ•´æ•°ç±»å‹ã€‚
 typedef int64_t intmax_t;
 typedef uint64_t uintmax_t;
 

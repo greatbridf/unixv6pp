@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * ¿É±ä²ÎÊı¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ13ÈÕ¡£
+ * å¯å˜å‚æ•°ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ13æ—¥ã€‚
  * 
- * ²Î¿¼£º
+ * å‚è€ƒï¼š
  *   https://pubs.opengroup.org/onlinepubs/9699919799/
  *   https://cplusplus.com/reference/cstdarg/
  */
@@ -15,8 +15,8 @@
 
 #if (__x86_64__)
 
-// ²Î¿¼ linux5.19 include/linux/stdarg.h
-// Ô­À´ gcc ±àÒëÆÚÒÑ¾­ÊµÏÖÁËÕâ¸ö°¡... º¦µÃÎÒË¼¿¼°ëÌìÔõÃ´Ğ´...
+// å‚è€ƒ linux5.19 include/linux/stdarg.h
+// åŸæ¥ gcc ç¼–è¯‘æœŸå·²ç»å®ç°äº†è¿™ä¸ªå•Š... å®³å¾—æˆ‘æ€è€ƒåŠå¤©æ€ä¹ˆå†™...
 
 typedef __builtin_va_list va_list;
 

@@ -9,9 +9,9 @@
 #include "PageManager.h"
 
 
-Machine Machine::instance;	/*��̬��ʵ���Ķ���*/
+Machine Machine::instance;	/*单态类实例的定义*/
 
-/* ȫ��GDT��IDT��TSS���� */
+/* 全局GDT、IDT、TSS变量 */
 GDT g_GDT;
 IDT g_IDT;
 
@@ -47,14 +47,14 @@ void Machine::InitIDT()
 {
 	this->m_IDT = &g_IDT;
 	/*
-	 * 1. ��IDT��0 - 255������ȫ������Ĭ���ж�/�쳣����������ڣ�ȷ
-	 *    ������һ���ж�/�쳣����ʱ���ᱻ�����������ں˱�����
-	 * 2. ��INT 0 - 31���쳣��ʹ�÷�Ĭ�ϵ��ж�/�쳣�������򸲸���ǰ
-	 *    Ĭ�ϴ���������ڡ�
-	 * 3. ����ʱ���жϡ������жϡ������жϵȶ�Ӧ���ж���ڡ�
-	 * 4. INT 0 - 31���쳣��ʹ��Ĭ�ϴ��������ģ�һ������²����ܷ�����
-	 *    ������Щ�쳣�Ĵ������̲������ֳ�����ͻָ��������������Ϣ��
-	 *    ������ѭ�����ȴ��˹���Ԥ��
+	 * 1. 将IDT中0 - 255个表项全部填入默认中断/异常处理函数入口，确
+	 *    保任意一种中断/异常发生时都会被处理，避免内核崩溃。
+	 * 2. 对INT 0 - 31号异常，使用非默认的中断/异常处理程序覆盖先前
+	 *    默认处理函数入口。
+	 * 3. 设置时钟中断、键盘中断、磁盘中断等对应的中断入口。
+	 * 4. INT 0 - 31号异常中使用默认处理函数的，一般情况下不可能发生，
+	 *    对于这些异常的处理流程不进行现场保存和恢复，仅输出错误信息，
+	 *    进入死循环，等待人工干预。
 	 */
 	for ( int i = 0; i <= 255; i++ )
 	{
@@ -63,7 +63,7 @@ void Machine::InitIDT()
 		 else
 			 this->GetIDT().SetInterruptGate(i, (unsigned long)IDT::DefaultInterruptHandler); 
 	}
-	/* ��ʼ��INT 0 - 31���쳣 */
+	/* 初始化INT 0 - 31号异常 */
 	this->GetIDT().SetTrapGate(0, (unsigned long)Exception::DivideErrorEntrance);
 	this->GetIDT().SetTrapGate(1, (unsigned long)Exception::DebugEntrance);
 	this->GetIDT().SetTrapGate(2, (unsigned long)Exception::NMIEntrance);
@@ -79,25 +79,25 @@ void Machine::InitIDT()
 	this->GetIDT().SetTrapGate(12,(unsigned long)Exception::StackSegmentErrorEntrance);
 	this->GetIDT().SetTrapGate(13,(unsigned long)Exception::GeneralProtectionEntrance);
 	
-	/* ȱҳ�쳣(INT 14) UNIX V6++�ж���������ͼ���뻻������ҳʽ��������˲���Ҫȱҳ�쳣�������� */
+	/* 缺页异常(INT 14) UNIX V6++中对整个进程图像换入换出，非页式交换，因此不需要缺页异常处理函数 */
 	this->GetIDT().SetTrapGate(14,(unsigned long)Exception::PageFaultEntrance);
-	/* Intel�����쳣(INT 15)  ʹ��IDT::DefaultExceptionHandler() */
+	/* Intel保留异常(INT 15)  使用IDT::DefaultExceptionHandler() */
 	this->GetIDT().SetTrapGate(16,(unsigned long)Exception::CoprocessorErrorEntrance);
 	this->GetIDT().SetTrapGate(17,(unsigned long)Exception::AlignmentCheckEntrance);
 	this->GetIDT().SetTrapGate(18,(unsigned long)Exception::MachineCheckEntrance);
 	this->GetIDT().SetTrapGate(19,(unsigned long)Exception::SIMDExceptionEntrance);
 
-	/* INT 20 - 31���쳣ΪIntel����δʹ�õ��쳣 */
+	/* INT 20 - 31号异常为Intel保留未使用的异常 */
 
-	/* ����ʱ���жϵ��ж��� */
+	/* 设置时钟中断的中断门 */
 	this->GetIDT().SetInterruptGate(0x20, (unsigned long)Time::TimeInterruptEntrance);
-	/* ���ü����жϵ��ж��� */
+	/* 设置键盘中断的中断门 */
 	this->GetIDT().SetInterruptGate(0x21, (unsigned long)KeyboardInterrupt::KeyboardInterruptEntrance);
-	/* ����IDT�д����ж϶�Ӧ�ж��� */
+	/* 设置IDT中磁盘中断对应中断门 */
 	this->GetIDT().SetInterruptGate(0x2E, (unsigned long)DiskInterrupt::DiskInterruptEntrance);
-	/* 0x80���ж�������Ϊϵͳ���ã�����ϵͳ���ö�Ӧ�������� */
+	/* 0x80号中断向量作为系统调用，设置系统调用对应的陷入门 */
 	this->GetIDT().SetTrapGate(0x80, (unsigned long)SystemCall::SystemCallEntrance);
-	/* 8259A��Ƭ��irq7���Ż������δ֪�жϣ��ṩ�жϴ����������������� */
+	/* 8259A主片的irq7引脚会产生的未知中断，提供中断处理函数“忽略它” */
 	this->GetIDT().SetInterruptGate(0x27, (unsigned long)MasterIRQ7);
 }
 
@@ -105,13 +105,13 @@ void Machine::InitGDT()
 {
 	this->m_GDT = &g_GDT;
 	
-	//��ʼ��GDT�е�4���Σ��ں˴���Ρ��ں����ݶΣ��û�����Ρ��û����ݶ�
+	//初始化GDT中的4个段：内核代码段、内核数据段，用户代码段、用户数据段
 	//limit = 0xfffff, base = 0x00000000, G = 1 , D = 1(32bit), P =1, DPL = 00, S = 1, TYPE = 1010 (code segment read only) 
 	//limit = 0xfffff, base = 0x00000000, G = 1, D = 1(32bit), P =1, DPL = 00, S = 1, TYPE = 0010 (data segment write/read) 
 	//limit = 0xfffff, base = 0x00000000, G = 1 , D = 1(32bit), P =1, DPL = 11, S = 1, TYPE = 1010 (code segment read only) 
 	//limit = 0xfffff, base = 0x00000000, G = 1, D = 1(32bit), P =1, DPL = 11, S = 1, TYPE = 0010 (data segment write/read) 
 	
-	//TODO ������Ӧ�Ŀɶ��ĳ�������GDTConsts::GRANULARITY_4K...
+	//TODO 添加相应的可读的常量，如GDTConsts::GRANULARITY_4K...
 	SegmentDescriptor tmpDescriptor; 
 	//0x08:00
 	tmpDescriptor.SetSegmentLimit(0xfffff);
@@ -157,7 +157,7 @@ void Machine::InitGDT()
 	tmpDescriptor.m_Type = 0x2;	
 	GetGDT().SetSegmentDescriptor(4, tmpDescriptor);
 
-	/* ��ʼ��TSS�� */
+	/* 初始化TSS段 */
 	this->m_TaskStateSegment = &g_TaskStateSegment;
 	this->InitTaskStateSegment();
 }
@@ -166,36 +166,36 @@ void Machine::InitGDT()
 void Machine::InitPageDirectory()
 {
 	/* 
-	 * ʵ�ֲ���ϵͳ��ҳ��ӳ��:
-	 * �����ڴ�0x00000000-0x00400000(0-4M)����ӳ�䵽���Ե�ַ
-	 * 0x00000000-0x00400000 �� 0xC0000000-0xC0400000
+	 * 实现操作系统的页表映射:
+	 * 物理内存0x00000000-0x00400000(0-4M)将被映射到线性地址
+	 * 0x00000000-0x00400000 和 0xC0000000-0xC0400000
 	 */
 	PageDirectory* pPageDirectory = (PageDirectory*)(PAGE_DIRECTORY_BASE_ADDRESS + KERNEL_SPACE_START_ADDRESS);
 	
-	/* ��дҳĿ¼��0x200#ҳ�����ĵ�0�ʹ���Ե�ַ0-4Mӳ�䵽�����ڴ�0-4M */
+	/* 填写页目录（0x200#页表）的第0项，使线性地址0-4M映射到物理内存0-4M */
 	/*
-	pPageDirectory->m_Entrys[0].m_UserSupervisor = 1;                   //�û�̬
+	pPageDirectory->m_Entrys[0].m_UserSupervisor = 1;                   //用户态
 	pPageDirectory->m_Entrys[0].m_Present = 1;
 	pPageDirectory->m_Entrys[0].m_ReadWriter = 1;
 	pPageDirectory->m_Entrys[0].m_PageTableBaseAddress = KERNEL_PAGE_TABLE_BASE_ADDRESS >> 12;
 	*/
 
-	/* ��дҳĿ¼��0x200#��ҳ���ĵ�768�ʹ���Ե�ַ0xC0000000-0xC0400000ӳ�䵽�����ڴ�0-4M��δ������̬�ռ�ߴ����4M�ֽڣ��ǵ�����Ҫ��*/
+	/* 填写页目录（0x200#）页表的第768项，使线性地址0xC0000000-0xC0400000映射到物理内存0-4M。未来核心态空间尺寸大于4M字节，记得这里要改*/
 	unsigned int kPageTableIdx = KERNEL_SPACE_START_ADDRESS / PageTable::SIZE_PER_PAGETABLE_MAP; 
-	pPageDirectory->m_Entrys[kPageTableIdx].m_UserSupervisor = 0;       // ����̬
+	pPageDirectory->m_Entrys[kPageTableIdx].m_UserSupervisor = 0;       // 核心态
 	pPageDirectory->m_Entrys[kPageTableIdx].m_Present = 1;
 	pPageDirectory->m_Entrys[kPageTableIdx].m_ReadWriter = 1;
 	pPageDirectory->m_Entrys[kPageTableIdx].m_PageTableBaseAddress = KERNEL_PAGE_TABLE_BASE_ADDRESS >> 12;
 
 
 	/* 
-	 * ��ʼ������̬ҳ��������̬ҳ���������������ַ
-	 * 0x200000(2M)������Ӧ���Ե�ַ��Ϊ0xC0200000
+	 * 初始化核心态页表。核心态页表被存放在物理地址
+	 * 0x200000(2M)，所对应线性地址则为0xC0200000
 	 */
 	PageTable* pPageTable = (PageTable*)(KERNEL_PAGE_TABLE_BASE_ADDRESS + KERNEL_SPACE_START_ADDRESS);
 	/* 
-	 * ʹ�������ڴ�0-4M��дҳ���ı��������������ڴ�0-4M
-	 * ӳ�䵽��λ0xC0000000-0xC0400000��������ϵͳ�ں�ʹ�á�
+	 * 使用物理内存0-4M填写页表的表项，至此完成物理内存0-4M
+	 * 映射到高位0xC0000000-0xC0400000，供操作系统内核使用。
 	 */
 	for ( unsigned int i = 0; i < PageTable::ENTRY_CNT_PER_PAGETABLE; i++ )
 	{
@@ -266,9 +266,9 @@ void Machine::InitUserPageTable()
 		pPageDirectory->m_Entrys[j].m_Present = 1;
 		pPageDirectory->m_Entrys[j].m_ReadWriter = 1;
 		/* 
-		 * ҳĿ¼��BaseAddress�ֶ��м�¼ҳ����������ʼ��ַ���������Ե�ַ��
-		 * Ҳ����˵����ҳ�����о���ҳĿ¼��BaseAddress�ֶ�����һ��ҳ����
-		 * ����ҳ����������ַ�ҵ�������ҳ���Ƶ�������������ҳ���Ƶı���--�����Ե�ַ�Ľ�����
+		 * 页目录项BaseAddress字段中记录页表的物理起始地址，而非线性地址。
+		 * 也就是说，分页机制中经由页目录项BaseAddress字段找下一级页表是
+		 * 根据页表的物理地址找到它。分页机制的运作不依赖分页机制的本身--对线性地址的解析。
 		 */
 		pPageDirectory->m_Entrys[j].m_PageTableBaseAddress = idx;
 		
@@ -296,23 +296,23 @@ void Machine::InitTaskStateSegment()
 	tss.m_EBP = 0xC0400000;
 	tss.m_ESP = 0xC0400000;
 	tss.m_EIP = 0xC0000000;	//runtime
-	tss.m_EFLAGS = 0x200;	/* ����enable IF λ */
+	tss.m_EFLAGS = 0x200;	/* 仅仅enable IF 位 */
 	tss.m_SS0 = Machine::KERNEL_DATA_SEGMENT_SELECTOR;
-	tss.m_ESP0 = 0xC0400000;	/* ����̬��ַ�ռ�ĩβ��Ϊջ�� */
+	tss.m_ESP0 = 0xC0400000;	/* 核心态地址空间末尾作为栈底 */
 
 	/* 
-	 * ��GDT���ĵ�5��(Machine::TASK_STATE_SEGMENT_IDX)ָ��TSS�Ρ�
+	 * 将GDT表的第5项(Machine::TASK_STATE_SEGMENT_IDX)指向TSS段。
 	 * 
-	 * ����GDT�������SegmentDescriptor���飬����û�ж�TSS��
-	 * �������ĳ��������Ҫ��TaskStateSegmentDescriptorǿת��
-	 * �Խ��б�Ҫ�����á�
+	 * 由于GDT被抽象成SegmentDescriptor数组，所以没有对TSS段
+	 * 描述符的抽象，因此需要将TaskStateSegmentDescriptor强转，
+	 * 以进行必要的设置。
 	 */
 	TaskStateSegmentDescriptor* p_TSSDescriptor = 
 		(TaskStateSegmentDescriptor*)(&(GetGDT().GetSegmentDescriptor(Machine::TASK_STATE_SEGMENT_IDX)));
 	p_TSSDescriptor->SetSegmengLimit(0x68 - 1);
 	p_TSSDescriptor->SetBaseAddress((unsigned long)&g_TaskStateSegment);
 	p_TSSDescriptor->m_Granularity = 1;
-	p_TSSDescriptor->m_Type = 0x9; //����λΪbusyλ������Ϊ0
+	p_TSSDescriptor->m_Type = 0x9; //第三位为busy位，设置为0
 	p_TSSDescriptor->m_Present = 0x1;
 	p_TSSDescriptor->m_Available = 0x1;
 	p_TSSDescriptor->m_DescriptorPrivilegeLevel = 0x00;
@@ -320,13 +320,13 @@ void Machine::InitTaskStateSegment()
 void Machine::EnablePageProtection()
 {
 	/* 
-	 * pageDirBaseAddr���ڸ�λ�ں˿ռ�����Ե�ַ����Ҫת��Ϊ������ַ��
+	 * pageDirBaseAddr是在高位内核空间的线性地址，需要转换为物理地址。
 	 * PhysicalAddress = LinearAddress - 0xC0000000
 	 */
 	unsigned int pageDirBaseAddr = (unsigned int)(&GetPageDirectory());
 	unsigned int pageDirPhyBaseAddr = pageDirBaseAddr - Machine::KERNEL_SPACE_START_ADDRESS;
 	
-	/* �Ĵ���CR3��д��ҳĿ¼��ʼ������ַ��CR0��PGλ��1��������ҳ���� */
+	/* 寄存器CR3中写入页目录起始物理地址，CR0的PG位置1，开启分页机制 */
 	__asm__ __volatile__("	movl %0, %%cr3;		\
 							movl %%cr0, %%eax;	\
 							orl $0x80000000, %%eax;	\

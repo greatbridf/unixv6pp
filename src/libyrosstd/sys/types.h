@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * Êı¾İÀàĞÍ¶¨Òå¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ2ÈÕ¡£
+ * æ•°æ®ç±»å‹å®šä¹‰ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ2æ—¥ã€‚
  */
 
 #pragma once
 
 #include "../stdint.h"
 
-/** ÎÄ¼ş½áÎ²¡£ */
+/** æ–‡ä»¶ç»“å°¾ã€‚ */
 #ifndef EOF
     #define EOF -1
 #endif
 
-/** ¿ÕÖ¸Õë¡£ */
+/** ç©ºæŒ‡é’ˆã€‚ */
 #ifndef NULL
     #define NULL 0
 #endif
 
-/** ½á¹¹Ìå½ô´Õ¡£ */
+/** ç»“æ„ä½“ç´§å‡‘ã€‚ */
 #ifndef __packed
     #define __packed __attribute__((packed))
 #endif
@@ -28,22 +28,22 @@
     #define __no_return __attribute__((__noreturn__))
 #endif
 
-/** Áîº¯Êı²»±£´æ rsp ºÍ rbp¡£ */
+/** ä»¤å‡½æ•°ä¸ä¿å­˜ rsp å’Œ rbpã€‚ */
 #ifndef __omit_frame_pointer
     #define __omit_frame_pointer __attribute__((optimize("omit-frame-pointer")))
 #endif
 
-/** Ç¿ÖÆÄÚÁª¡£ */
+/** å¼ºåˆ¶å†…è”ã€‚ */
 #ifndef __force_inline
     #define __force_inline __attribute__((always_inline)) inline
 #endif
 
-/** ÄÚÁª»ã±à¡£ */
+/** å†…è”æ±‡ç¼–ã€‚ */
 #ifndef __asm
     #define __asm __asm__ __volatile__
 #endif
 
-/** Ö¸¶¨´úÂë´æ·ÅµÄÇøÓò¡£ */
+/** æŒ‡å®šä»£ç å­˜æ”¾çš„åŒºåŸŸã€‚ */
 #ifndef __section
     #define __section(name) __attribute__((section(name)))
 #endif

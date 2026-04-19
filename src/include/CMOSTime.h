@@ -7,41 +7,41 @@ class CMOSTime
 {
 public:
 	/* static const member variables*/
-	static const unsigned short CMOS_ADDR_PORT = 0x70;		/* CMOSµØÖ·¶Ë¿ÚºÅ0x70£¬¸Ã¶Ë¿ÚÓÃÓÚÑ¡ÔñÒª¶ÁÈ¡µÄCMOS×Ö½ÚÆ«ÒÆ */	
-	static const unsigned short CMOS_DATA_PORT = 0x71;		/* CMOSÊı¾İ¶Ë¿ÚºÅ0x71£¬»ñÈ¡Ö¸¶¨×Ö½ÚÆ«ÒÆµÄÊı¾İÄÚÈİµÄ¶Ë¿Ú */
+	static const unsigned short CMOS_ADDR_PORT = 0x70;		/* CMOSåœ°å€ç«¯å£å·0x70ï¼Œè¯¥ç«¯å£ç”¨äºé€‰æ‹©è¦è¯»å–çš„CMOSå­—èŠ‚åç§» */	
+	static const unsigned short CMOS_DATA_PORT = 0x71;		/* CMOSæ•°æ®ç«¯å£å·0x71ï¼Œè·å–æŒ‡å®šå­—èŠ‚åç§»çš„æ•°æ®å†…å®¹çš„ç«¯å£ */
 	
-	/* CMOS´æ´¢Æ÷ÖĞ¸÷¸ö×Ö½ÚÆ«ÒÆÁ¿µÄ¶¨Òå ÆäÊı¾İ¶¼Îª!!BCD¸ñÊ½!!´æ´¢£¬ĞèÒª×ª»»³É¶ş½øÖÆ */
-	static const unsigned char RTC_SECONDS = 0x00;			/* ÊµÊ±ÖÓ(Real Time Clock)µ±Ç°ÃëÖµ */
-	static const unsigned char RTC_ALARM_SECONDS = 0x01;	/* ÊµÊ±ÖÓ(Real Time Clock)¾¯±¨ÃëÖµ£¬Not Used */
-	static const unsigned char RTC_MINUTES = 0x02;			/* ÊµÊ±ÖÓ(Real Time Clock)µ±Ç°·ÖÖÓÖµ */
-	static const unsigned char RTC_ALARM_MINUTES = 0x03;	/* ÊµÊ±ÖÓ(Real Time Clock)¾¯±¨·ÖÖÓÖµ£¬Not Used */
-	static const unsigned char RTC_HOURS = 0x04;			/* ÊµÊ±ÖÓ(Real Time Clock)µ±Ç°Ğ¡Ê±Öµ */
-	static const unsigned char RTC_ALARM_HOURS = 0x05;		/* ÊµÊ±ÖÓ(Real Time Clock)¾¯±¨Ğ¡Ê±Öµ£¬Not Used */
-	static const unsigned char RTC_DAY_OF_WEEK = 0x06;		/* ÊµÊ±ÖÓ(Real Time Clock)Days of Week since Sunday: 1 ~ 7 */
-	static const unsigned char RTC_DAY_OF_MONTH = 0x07;		/* ÊµÊ±ÖÓ(Real Time Clock)Days of Month: 1 ~ 31 */
-	static const unsigned char RTC_MONTH = 0x08;			/* ÊµÊ±ÖÓ(Real Time Clock)µ±Ç°ÔÂ·İÖµ£ºMonths since January: 0 ~ 11 */
-	static const unsigned char RTC_YEAR = 0x09;				/* ÊµÊ±ÖÓ(Real Time Clock)µ±Ç°Äê·İÖµ4Î»ÖĞµÄºó2Î»£ºYears since 1900 */
-	static const unsigned char RTC_STATUS_REGISTER_A = 0x0A;/* ÊµÊ±ÖÓ(Real Time Clock)×´Ì¬¼Ä´æÆ÷A */
-	static const unsigned char RTC_STATUS_REGISTER_B = 0x0B;/* ÊµÊ±ÖÓ(Real Time Clock)×´Ì¬¼Ä´æÆ÷B£¬Not Used */
-	static const unsigned char RTC_STATUS_REGISTER_C = 0x0C;/* ÊµÊ±ÖÓ(Real Time Clock)×´Ì¬¼Ä´æÆ÷C£¬Not Used */
-	static const unsigned char RTC_STATUS_REGISTER_D = 0x0D;/* ÊµÊ±ÖÓ(Real Time Clock)×´Ì¬¼Ä´æÆ÷D£¬Not Used */
+	/* CMOSå­˜å‚¨å™¨ä¸­å„ä¸ªå­—èŠ‚åç§»é‡çš„å®šä¹‰ å…¶æ•°æ®éƒ½ä¸º!!BCDæ ¼å¼!!å­˜å‚¨ï¼Œéœ€è¦è½¬æ¢æˆäºŒè¿›åˆ¶ */
+	static const unsigned char RTC_SECONDS = 0x00;			/* å®æ—¶é’Ÿ(Real Time Clock)å½“å‰ç§’å€¼ */
+	static const unsigned char RTC_ALARM_SECONDS = 0x01;	/* å®æ—¶é’Ÿ(Real Time Clock)è­¦æŠ¥ç§’å€¼ï¼ŒNot Used */
+	static const unsigned char RTC_MINUTES = 0x02;			/* å®æ—¶é’Ÿ(Real Time Clock)å½“å‰åˆ†é’Ÿå€¼ */
+	static const unsigned char RTC_ALARM_MINUTES = 0x03;	/* å®æ—¶é’Ÿ(Real Time Clock)è­¦æŠ¥åˆ†é’Ÿå€¼ï¼ŒNot Used */
+	static const unsigned char RTC_HOURS = 0x04;			/* å®æ—¶é’Ÿ(Real Time Clock)å½“å‰å°æ—¶å€¼ */
+	static const unsigned char RTC_ALARM_HOURS = 0x05;		/* å®æ—¶é’Ÿ(Real Time Clock)è­¦æŠ¥å°æ—¶å€¼ï¼ŒNot Used */
+	static const unsigned char RTC_DAY_OF_WEEK = 0x06;		/* å®æ—¶é’Ÿ(Real Time Clock)Days of Week since Sunday: 1 ~ 7 */
+	static const unsigned char RTC_DAY_OF_MONTH = 0x07;		/* å®æ—¶é’Ÿ(Real Time Clock)Days of Month: 1 ~ 31 */
+	static const unsigned char RTC_MONTH = 0x08;			/* å®æ—¶é’Ÿ(Real Time Clock)å½“å‰æœˆä»½å€¼ï¼šMonths since January: 0 ~ 11 */
+	static const unsigned char RTC_YEAR = 0x09;				/* å®æ—¶é’Ÿ(Real Time Clock)å½“å‰å¹´ä»½å€¼4ä½ä¸­çš„å2ä½ï¼šYears since 1900 */
+	static const unsigned char RTC_STATUS_REGISTER_A = 0x0A;/* å®æ—¶é’Ÿ(Real Time Clock)çŠ¶æ€å¯„å­˜å™¨A */
+	static const unsigned char RTC_STATUS_REGISTER_B = 0x0B;/* å®æ—¶é’Ÿ(Real Time Clock)çŠ¶æ€å¯„å­˜å™¨Bï¼ŒNot Used */
+	static const unsigned char RTC_STATUS_REGISTER_C = 0x0C;/* å®æ—¶é’Ÿ(Real Time Clock)çŠ¶æ€å¯„å­˜å™¨Cï¼ŒNot Used */
+	static const unsigned char RTC_STATUS_REGISTER_D = 0x0D;/* å®æ—¶é’Ÿ(Real Time Clock)çŠ¶æ€å¯„å­˜å™¨Dï¼ŒNot Used */
 	
-	static const unsigned char BASE_MEMORY_LOW = 0x15;			/* »ù´¡ÄÚ´æ(µÍ×Ö½Ú) */
-	static const unsigned char BASE_MEMORY_HIGH = 0x16;			/* »ù´¡ÄÚ´æ(¸ß×Ö½Ú) */
-	static const unsigned char EXTENDED_MEMORY_LOW = 0x17;		/* À©Õ¹ÄÚ´æ(µÍ×Ö½Ú) */
-	static const unsigned char EXTENDED_MEMORY_HIGH = 0x18;		/* À©Õ¹ÄÚ´æ(¸ß×Ö½Ú) */
-	static const unsigned char EXTENDED_MEMORY_ABOVE_1MB_LOW = 0x30;	/* 1MBÒÔÉÏÀ©Õ¹ÄÚ´æ(µÍ×Ö½Ú) */
-	static const unsigned char EXTENDED_MEMORY_ABOVE_1MB_HIGH = 0x31;	/* 1MBÒÔÉÏÀ©Õ¹ÄÚ´æ(¸ß×Ö½Ú) */
+	static const unsigned char BASE_MEMORY_LOW = 0x15;			/* åŸºç¡€å†…å­˜(ä½å­—èŠ‚) */
+	static const unsigned char BASE_MEMORY_HIGH = 0x16;			/* åŸºç¡€å†…å­˜(é«˜å­—èŠ‚) */
+	static const unsigned char EXTENDED_MEMORY_LOW = 0x17;		/* æ‰©å±•å†…å­˜(ä½å­—èŠ‚) */
+	static const unsigned char EXTENDED_MEMORY_HIGH = 0x18;		/* æ‰©å±•å†…å­˜(é«˜å­—èŠ‚) */
+	static const unsigned char EXTENDED_MEMORY_ABOVE_1MB_LOW = 0x30;	/* 1MBä»¥ä¸Šæ‰©å±•å†…å­˜(ä½å­—èŠ‚) */
+	static const unsigned char EXTENDED_MEMORY_ABOVE_1MB_HIGH = 0x31;	/* 1MBä»¥ä¸Šæ‰©å±•å†…å­˜(é«˜å­—èŠ‚) */
 
-	/* RTC×´Ì¬¼Ä´æÆ÷A±ÈÌØÎ»¶¨Òå£º */
-	static const unsigned char RTC_UPDATE_IN_PROGRESS = 0x80;	/* Bit(7)µÈÓÚ1±íÊ¾Time update in progress£¬ÕıÔÚ¸üĞÂCMOSÊ±¼ä£¬
-																´ËÊ±²»¿É¶ÁÈ¡£¬Bit(7)µÈÓÚ0±íÊ¾¿ÉÒÔ¶ÁÈ¡CMOSÊ±¼äºÍÈÕÆÚ */
+	/* RTCçŠ¶æ€å¯„å­˜å™¨Aæ¯”ç‰¹ä½å®šä¹‰ï¼š */
+	static const unsigned char RTC_UPDATE_IN_PROGRESS = 0x80;	/* Bit(7)ç­‰äº1è¡¨ç¤ºTime update in progressï¼Œæ­£åœ¨æ›´æ–°CMOSæ—¶é—´ï¼Œ
+																æ­¤æ—¶ä¸å¯è¯»å–ï¼ŒBit(7)ç­‰äº0è¡¨ç¤ºå¯ä»¥è¯»å–CMOSæ—¶é—´å’Œæ—¥æœŸ */
 
 public:
-	/* ´ÓCOMS´æ´¢Æ÷ÖĞ»ñÈ¡ÏµÍ³Ê±¼ä£¬Ìî³äSystemTime½á¹¹ */
+	/* ä»COMSå­˜å‚¨å™¨ä¸­è·å–ç³»ç»Ÿæ—¶é—´ï¼Œå¡«å……SystemTimeç»“æ„ */
 	static void ReadCMOSTime(struct SystemTime* pTime);
 
-	/* ¶ÁÈ¡Ö¸¶¨Æ«ÒÆÎ»ÖÃÉÏµÄCMOS´æ´¢Æ÷Êı¾İÄÚÈİ */
+	/* è¯»å–æŒ‡å®šåç§»ä½ç½®ä¸Šçš„CMOSå­˜å‚¨å™¨æ•°æ®å†…å®¹ */
 	static int ReadCMOSByte(unsigned char CMOSOffset);
 };
 

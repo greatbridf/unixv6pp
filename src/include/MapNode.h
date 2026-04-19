@@ -2,8 +2,8 @@
 #define MAP_NODE_H
 
 /*
- *@comment Õâ¸ö½á¹¹¶ÔÓ¦Unixv6ÖĞµÄmap½á¹¹
- *ÏÂÃæ¸ø³ömap½á¹¹²Î¿¼
+ *@comment è¿™ä¸ªç»“æ„å¯¹åº”Unixv6ä¸­çš„mapç»“æ„
+ *ä¸‹é¢ç»™å‡ºmapç»“æ„å‚è€ƒ
  * struct map	@line 2515
  * {
 	char *m_size;
@@ -14,13 +14,13 @@ struct MapNode
 {
 	unsigned long m_Size;
 	/* 
-	 * ×¢ÊÍ¿ÉÄÜÊÇ²»¶ÔµÄ¡£
-	 * m_addr ±íÊ¾Êı¾İ¿éÔÚÕû¸ö¿Õ¼äÖĞµÄË÷ÒıÎ»ÖÃ£¬
-	 * ÀıÈçphysicalÄÚ´æÖĞ4kÒ»¿é£¬Èôm_AddressIdxÎª2£¬
-	 * Ôò±íÊ¾0x2000(8k)µÄÎ»ÖÃ£¬Í¬ÀíswapÇøÖĞ£¬
-	 * Êı¾İ¿é´óĞ¡Îª512byte 
+	 * æ³¨é‡Šå¯èƒ½æ˜¯ä¸å¯¹çš„ã€‚
+	 * m_addr è¡¨ç¤ºæ•°æ®å—åœ¨æ•´ä¸ªç©ºé—´ä¸­çš„ç´¢å¼•ä½ç½®ï¼Œ
+	 * ä¾‹å¦‚physicalå†…å­˜ä¸­4kä¸€å—ï¼Œè‹¥m_AddressIdxä¸º2ï¼Œ
+	 * åˆ™è¡¨ç¤º0x2000(8k)çš„ä½ç½®ï¼ŒåŒç†swapåŒºä¸­ï¼Œ
+	 * æ•°æ®å—å¤§å°ä¸º512byte 
 	 */
-	unsigned long m_AddressIdx;	     //·ÖÅä¿Õ¼äµÄÆğÊ¼µØÖ·
+	unsigned long m_AddressIdx;	     //åˆ†é…ç©ºé—´çš„èµ·å§‹åœ°å€
 };
 
 #endif

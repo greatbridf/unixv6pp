@@ -1,7 +1,7 @@
 #ifndef LIB_H
 #define LIB_H
 
-/* 系统调用的C库封装函数，为避免跟内核中函数重名，加上lib_前缀 */
+/* 绯荤粺璋冪敤鐨凜搴撳皝瑁呭嚱鏁帮紝涓洪伩鍏嶈窡鍐呮牳涓嚱鏁伴噸鍚嶏紝鍔犱笂lib_鍓嶇紑 */
 
 int lib_creat(char* pathname, unsigned int mode);
 

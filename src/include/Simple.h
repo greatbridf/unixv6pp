@@ -16,7 +16,7 @@ private:
 	unsigned int y;
 
 public:	
-	/*ÏÂÃæÊÔÊÔstatic data member*/
+	/*ä¸‹é¢è¯•è¯•static data member*/
 	static int size;
 	static char tst[50];
 };

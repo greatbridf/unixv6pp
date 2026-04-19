@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * ×Ö·û´®´¦Àíº¯Êı¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ4ÈÕ¡£
+ * å­—ç¬¦ä¸²å¤„ç†å‡½æ•°ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ4æ—¥ã€‚
  */
 
 #include <libyrosstd/string.h>
@@ -49,11 +49,11 @@ char* strncat(char* dest, const char* src, size_t count) {
 
 
 size_t strlen(const char* str) {
-    // ²Î¿¼ glibc µÄÊµÏÖ·½Ê½¡£
-    // ½âÊÍ¼û£ºhttps://blog.csdn.net/m0_62405272/article/details/125600719
+    // å‚è€ƒ glibc çš„å®ç°æ–¹å¼ã€‚
+    // è§£é‡Šè§ï¼šhttps://blog.csdn.net/m0_62405272/article/details/125600719
     
-    /* ÏÈ½«Ö¸ÕëÓë×Ö½Ú¶ÔÆë¡£
-       ½«Ö¸Õë×ª»»³É long ÕâÖÖ²Ù×÷ÔÚÓĞĞ©Æ½Ì¨»á±¨´í¡£×¢Òâ£¬²»µÈºÅµÄÓÅÏÈ¼¶¸ßÓÚÓëÔËËã¡£ */
+    /* å…ˆå°†æŒ‡é’ˆä¸å­—èŠ‚å¯¹é½ã€‚
+       å°†æŒ‡é’ˆè½¬æ¢æˆ long è¿™ç§æ“ä½œåœ¨æœ‰äº›å¹³å°ä¼šæŠ¥é”™ã€‚æ³¨æ„ï¼Œä¸ç­‰å·çš„ä¼˜å…ˆçº§é«˜äºä¸è¿ç®—ã€‚ */
     const char* charPtr = str;
     while (((long) charPtr & (sizeof(long) - 1)) != 0) {
         if (*charPtr == '\0') {
@@ -71,7 +71,7 @@ size_t strlen(const char* str) {
         highMagic = ((highMagic << 16) << 16) | highMagic;
         lowMagic = ((lowMagic << 16) << 16) | lowMagic;
     }
-    // Ôİ²»¿¼ÂÇ long µÄ¿í¶È³¬¹ı 8 ×Ö½ÚµÄÇé¿ö¡£
+    // æš‚ä¸è€ƒè™‘ long çš„å®½åº¦è¶…è¿‡ 8 å­—èŠ‚çš„æƒ…å†µã€‚
 
     while (true) {
         const unsigned long& longWords = *longPtr++;
@@ -157,7 +157,7 @@ char* strrchr(const char* str, int ch) {
 }
 
 size_t strspn(const char* dest, const char* src) {
-    bool tar[256]; // Ôİ²»¿¼ÂÇ¶Ô C ÓïÑÔµÄ¼æÈİÎÊÌâ¡£
+    bool tar[256]; // æš‚ä¸è€ƒè™‘å¯¹ C è¯­è¨€çš„å…¼å®¹é—®é¢˜ã€‚
     memset(tar, 0, sizeof(tar));
 
     const unsigned char* p = (const unsigned char*) src;
@@ -173,7 +173,7 @@ size_t strspn(const char* dest, const char* src) {
 }
 
 size_t strcspn(const char* dest, const char* src) {
-    bool tar[256]; // Ôİ²»¿¼ÂÇ¶Ô C ÓïÑÔµÄ¼æÈİÎÊÌâ¡£
+    bool tar[256]; // æš‚ä¸è€ƒè™‘å¯¹ C è¯­è¨€çš„å…¼å®¹é—®é¢˜ã€‚
     memset(tar, 0xff, sizeof(tar));
 
     const unsigned char* p = (const unsigned char*) src;
@@ -223,7 +223,7 @@ char* strstr(const char* str, const char* substr) {
 
     return NULL;
 
-    // ×¢Òâ£ºÏÖÔÚÕâÖÖËã·¨Ğ§ÂÊºÜµÍ¡£¿ÉÒÔ¿¼ÂÇÑĞ¾¿¸üºÃµÄËã·¨¡£
+    // æ³¨æ„ï¼šç°åœ¨è¿™ç§ç®—æ³•æ•ˆç‡å¾ˆä½ã€‚å¯ä»¥è€ƒè™‘ç ”ç©¶æ›´å¥½çš„ç®—æ³•ã€‚
 }
 
 char* strtok(char* str, const char* delim) {
@@ -299,23 +299,23 @@ void* memset(void* dest, int ch, size_t count) {
 }
 
 /**
- * ¿ìËÙÄÚ´æ¿½±´¡£µ÷ÓÃÊ±£¬¼ÙÉè´«ÈëµÄÄÚ´æ¿ÉÒÔ»¥Ïà¶ÔÆë£¬·ñÔòĞÔÄÜ»á½µµÍ¡£
+ * å¿«é€Ÿå†…å­˜æ‹·è´ã€‚è°ƒç”¨æ—¶ï¼Œå‡è®¾ä¼ å…¥çš„å†…å­˜å¯ä»¥äº’ç›¸å¯¹é½ï¼Œå¦åˆ™æ€§èƒ½ä¼šé™ä½ã€‚
  *
- * ´«Í³ÄÚ´æ¿½±´Ê±£¬Ò»´ÎÖ»ÄÜ¿½±´1¸ö×Ö½Ú£¬ËÙ¶È½ÏÂı¡£
- * ±¾·½·¨ÔÚ¹Û²ìµ½Ô´µØÖ·ºÍÄ¿µÄµØÖ·µÍ n Î»ÏàÍ¬Ê±£¬
- * Ã¿´Î¿½±´Ò»¸ö CPU ×Ö³¤¡£ÆäÖĞ£¬n Îª»úÆ÷×Ö³¤³ıÒÔ×Ö½Ú³¤¶È 8¡£
+ * ä¼ ç»Ÿå†…å­˜æ‹·è´æ—¶ï¼Œä¸€æ¬¡åªèƒ½æ‹·è´1ä¸ªå­—èŠ‚ï¼Œé€Ÿåº¦è¾ƒæ…¢ã€‚
+ * æœ¬æ–¹æ³•åœ¨è§‚å¯Ÿåˆ°æºåœ°å€å’Œç›®çš„åœ°å€ä½ n ä½ç›¸åŒæ—¶ï¼Œ
+ * æ¯æ¬¡æ‹·è´ä¸€ä¸ª CPU å­—é•¿ã€‚å…¶ä¸­ï¼Œn ä¸ºæœºå™¨å­—é•¿é™¤ä»¥å­—èŠ‚é•¿åº¦ 8ã€‚
  *
- * ÀıÈç£¬µ± src Îª 0x345A, dest Îª 0x987A Ê±£¬
- * src ºÍ dest µÄµÍ 4 Î»ÏàÍ¬¡£µ±»úÆ÷×Ö³¤Îª 4 Î»Ê±£¬¿ÉÒÔÏÈÊ¹ÓÃµ¥×Ö½Ú¿½±´·½·¨£¬
- * ½« src ºÍ dest ÓëÄÚ´æ¶ÔÆë¡£½« src ºÍ dest ·Ö±ğ¶ÔÆëµ½ 0b..000£¬
- * ¼´¿É½èÖú»úÆ÷×Ö³¤µÄÓÅÊÆ£¬Ò»´ÎĞÔ¿½±´¸ü¶à×Ö·û¡£
+ * ä¾‹å¦‚ï¼Œå½“ src ä¸º 0x345A, dest ä¸º 0x987A æ—¶ï¼Œ
+ * src å’Œ dest çš„ä½ 4 ä½ç›¸åŒã€‚å½“æœºå™¨å­—é•¿ä¸º 4 ä½æ—¶ï¼Œå¯ä»¥å…ˆä½¿ç”¨å•å­—èŠ‚æ‹·è´æ–¹æ³•ï¼Œ
+ * å°† src å’Œ dest ä¸å†…å­˜å¯¹é½ã€‚å°† src å’Œ dest åˆ†åˆ«å¯¹é½åˆ° 0b..000ï¼Œ
+ * å³å¯å€ŸåŠ©æœºå™¨å­—é•¿çš„ä¼˜åŠ¿ï¼Œä¸€æ¬¡æ€§æ‹·è´æ›´å¤šå­—ç¬¦ã€‚
  *
- * ¸²¸ÇÎÊÌâ£ºmemcpy ±¾Éí²»ÔÊĞí¿½±´Çø¼ä»¥Ïà¸²¸Ç¡£Òò´Ë£¬±¾·½·¨²»±£Ö¤´Ë·½Ãæ°²È«ĞÔ¡£
- * ¶Ì¿½±´£ºµ± src ºÍ dest µÄ¾àÀëĞ¡ÓÚÒ»¸ö¼Ä´æÆ÷µÄ³¤¶ÈÊ±£¬¸ù±¾ÎŞ·¨»¥Ïà¶ÔÆë¡£Òò´Ë£¬²»´æÔÚ´ËÎÊÌâ¡£
+ * è¦†ç›–é—®é¢˜ï¼šmemcpy æœ¬èº«ä¸å…è®¸æ‹·è´åŒºé—´äº’ç›¸è¦†ç›–ã€‚å› æ­¤ï¼Œæœ¬æ–¹æ³•ä¸ä¿è¯æ­¤æ–¹é¢å®‰å…¨æ€§ã€‚
+ * çŸ­æ‹·è´ï¼šå½“ src å’Œ dest çš„è·ç¦»å°äºä¸€ä¸ªå¯„å­˜å™¨çš„é•¿åº¦æ—¶ï¼Œæ ¹æœ¬æ— æ³•äº’ç›¸å¯¹é½ã€‚å› æ­¤ï¼Œä¸å­˜åœ¨æ­¤é—®é¢˜ã€‚
  *
- * @param dest ¿½±´Ä¿±êµØÖ·¡£ĞèÒªÓë src ¾àÀë¶ÔÆë£¬²»ÒªÇóÓëÄÚ´æµ¥Ôª¶ÔÆë¡£
- * @param src ¿½±´Ô´µØÖ·¡£
- * @param count ¿½±´×Ö·û×ÜÊı¡£
+ * @param dest æ‹·è´ç›®æ ‡åœ°å€ã€‚éœ€è¦ä¸ src è·ç¦»å¯¹é½ï¼Œä¸è¦æ±‚ä¸å†…å­˜å•å…ƒå¯¹é½ã€‚
+ * @param src æ‹·è´æºåœ°å€ã€‚
+ * @param count æ‹·è´å­—ç¬¦æ€»æ•°ã€‚
  * @return dest
  */
 static inline void* memcpy_aligned(void* dest, const void* src, size_t count) {
@@ -338,12 +338,12 @@ static inline void* memcpy_aligned(void* dest, const void* src, size_t count) {
 
 void* memcpy(void* dest, const void* src, size_t count) {
 
-    // Èç¹û src ºÍ dest ¿ÉÒÔ»¥Ïà¶ÔÆë£¬ÔòÊ¹ÓÃ¿ìËÙ¿½±´¡£
+    // å¦‚æœ src å’Œ dest å¯ä»¥äº’ç›¸å¯¹é½ï¼Œåˆ™ä½¿ç”¨å¿«é€Ÿæ‹·è´ã€‚
     if (!((intptr_t(dest) ^ intptr_t(src)) & (sizeof(long) - 1))) {
         return memcpy_aligned(dest, src, count);
     }
 
-    // µ¥×Ö½Ú¿½±´¡£
+    // å•å­—èŠ‚æ‹·è´ã€‚
     char* pDest = (char*) dest;
     char* pSrc = (char*) src;
     while (pSrc < ((char*) src) + count) {

@@ -7,44 +7,44 @@
 
 void DiskInterrupt::DiskInterruptEntrance()
 {
-	SaveContext();			/* ±£´æÖĞ¶ÏÏÖ³¡ */
+	SaveContext();			/* ä¿å­˜ä¸­æ–­ç°åœº */
 
-	SwitchToKernel();		/* ½øÈëºËĞÄÌ¬ */
+	SwitchToKernel();		/* è¿›å…¥æ ¸å¿ƒæ€ */
 
-	CallHandler(ATADriver, ATAHandler);		/* µ÷ÓÃ´ÅÅÌÖĞ¶Ï´¦Àí³ÌĞò */
+	CallHandler(ATADriver, ATAHandler);		/* è°ƒç”¨ç£ç›˜ä¸­æ–­å¤„ç†ç¨‹åº */
 
-	/* ¶ÔÖ÷¡¢´Ó8259AÖĞ¶Ï¿ØÖÆĞ¾Æ¬·Ö±ğ·¢ËÍEOIÃüÁî¡£ */
+	/* å¯¹ä¸»ã€ä»8259Aä¸­æ–­æ§åˆ¶èŠ¯ç‰‡åˆ†åˆ«å‘é€EOIå‘½ä»¤ã€‚ */
 //	IOPort::OutByte(Chip8259A::MASTER_IO_PORT_1, Chip8259A::EOI);
 //	IOPort::OutByte(Chip8259A::SLAVE_IO_PORT_1, Chip8259A::EOI);
 
-	/* »ñÈ¡ÓÉÖĞ¶ÏÒşÖ¸Áî(¼´Ó²¼şÊµÊ©)Ñ¹ÈëºËĞÄÕ»µÄpt_context¡£
-	* ÕâÑù¾Í¿ÉÒÔ·ÃÎÊcontext.xcsÖĞµÄOLD_CPL£¬ÅĞ¶ÏÏÈÇ°Ì¬
-	* ÊÇÓÃ»§Ì¬»¹ÊÇºËĞÄÌ¬¡£
+	/* è·å–ç”±ä¸­æ–­éšæŒ‡ä»¤(å³ç¡¬ä»¶å®æ–½)å‹å…¥æ ¸å¿ƒæ ˆçš„pt_contextã€‚
+	* è¿™æ ·å°±å¯ä»¥è®¿é—®context.xcsä¸­çš„OLD_CPLï¼Œåˆ¤æ–­å…ˆå‰æ€
+	* æ˜¯ç”¨æˆ·æ€è¿˜æ˜¯æ ¸å¿ƒæ€ã€‚
 	*/
 	struct pt_context *context;
 	__asm__ __volatile__ ("	movl %%ebp, %0; addl $0x4, %0 " : "+m" (context) );
 
-	if( context->xcs & USER_MODE ) /*ÏÈÇ°ÎªÓÃ»§Ì¬*/
+	if( context->xcs & USER_MODE ) /*å…ˆå‰ä¸ºç”¨æˆ·æ€*/
 	{
 		while(true)
 		{
-			X86Assembly::CLI();	/* ´¦Àí»úÓÅÏÈ¼¶ÉıÎª7¼¶ */
+			X86Assembly::CLI();	/* å¤„ç†æœºä¼˜å…ˆçº§å‡ä¸º7çº§ */
 			
 			if(Kernel::Instance().GetProcessManager().RunRun > 0)
 			{
-				X86Assembly::STI();	/* ´¦Àí»úÓÅÏÈ¼¶½µÎª0¼¶ */
+				X86Assembly::STI();	/* å¤„ç†æœºä¼˜å…ˆçº§é™ä¸º0çº§ */
 				Kernel::Instance().GetProcessManager().Swtch();
 			}
 			else
 			{
-				break;	/* Èç¹ûrunrun == 0£¬ÔòÍËÕ»»Øµ½ÓÃ»§Ì¬¼ÌĞøÓÃ»§³ÌĞòµÄÖ´ĞĞ */
+				break;	/* å¦‚æœrunrun == 0ï¼Œåˆ™é€€æ ˆå›åˆ°ç”¨æˆ·æ€ç»§ç»­ç”¨æˆ·ç¨‹åºçš„æ‰§è¡Œ */
 			}
 		}
 	}
 	
-	RestoreContext();		/* »Ö¸´ÏÖ³¡ */
+	RestoreContext();		/* æ¢å¤ç°åœº */
 
-	Leave();				/* ÊÖ¹¤Ïú»ÙÕ»Ö¡ */
+	Leave();				/* æ‰‹å·¥é”€æ¯æ ˆå¸§ */
 
-	InterruptReturn();		/* ÍË³öÖĞ¶Ï */
+	InterruptReturn();		/* é€€å‡ºä¸­æ–­ */
 }

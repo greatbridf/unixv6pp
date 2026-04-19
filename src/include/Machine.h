@@ -8,26 +8,26 @@
 #include "sys/types.h"
 
 /*
- * MachineÀàÓÃÓÚ·â×°¶Ôµ×²ãÓ²¼ş¡¢±£»¤Ä£Ê½ÏÂÊı¾İ½á¹¹µÄ³éÏó¡£
- * °üÀ¨¶Ô8254Ê±ÖÓĞ¾Æ¬¡¢8259AÖĞ¶Ï¿ØÖÆĞ¾Æ¬µÄ³õÊ¼»¯£¬ÒÔ¼°¶Ô
- * ±£»¤Ä£Ê½ÏÂGDT, IDTµÈÊı¾İ½á¹¹µÄ²Ù×÷¡£
+ * Machineç±»ç”¨äºå°è£…å¯¹åº•å±‚ç¡¬ä»¶ã€ä¿æŠ¤æ¨¡å¼ä¸‹æ•°æ®ç»“æ„çš„æŠ½è±¡ã€‚
+ * åŒ…æ‹¬å¯¹8254æ—¶é’ŸèŠ¯ç‰‡ã€8259Aä¸­æ–­æ§åˆ¶èŠ¯ç‰‡çš„åˆå§‹åŒ–ï¼Œä»¥åŠå¯¹
+ * ä¿æŠ¤æ¨¡å¼ä¸‹GDT, IDTç­‰æ•°æ®ç»“æ„çš„æ“ä½œã€‚
  * 
- * MachineÀàÊ¹ÓÃSingletonÄ£Ê½ÊµÏÖ£¬ÔÚÏµÍ³ÄÚºËÕû¸öÉúÃüÖÜÆÚ
- * ÖĞÖ»ÓĞÒ»¸öÊµÀı¶ÔÏó¡£
+ * Machineç±»ä½¿ç”¨Singletonæ¨¡å¼å®ç°ï¼Œåœ¨ç³»ç»Ÿå†…æ ¸æ•´ä¸ªç”Ÿå‘½å‘¨æœŸ
+ * ä¸­åªæœ‰ä¸€ä¸ªå®ä¾‹å¯¹è±¡ã€‚
  */
 class Machine
 {
 	/* static const member */
 public:
-	/* ÄÚºË´úÂë¶Î¡¢ÄÚºËÊı¾İ¶Î£¬ÓÃ»§´úÂë¶Î¡¢ÓÃ»§Êı¾İ¶Î£¬TSS¶ÎµÄÑ¡Ôñ×Ó */
+	/* å†…æ ¸ä»£ç æ®µã€å†…æ ¸æ•°æ®æ®µï¼Œç”¨æˆ·ä»£ç æ®µã€ç”¨æˆ·æ•°æ®æ®µï¼ŒTSSæ®µçš„é€‰æ‹©å­ */
 	static const unsigned int KERNEL_CODE_SEGMENT_SELECTOR = 0x08;
 	static const unsigned int KERNEL_DATA_SEGMENT_SELECTOR = 0x10;
 	static const unsigned int USER_CODE_SEGMENT_SELECTOR = (0x18 | 0x3);
 	static const unsigned int USER_DATA_SEGMENT_SELECTOR = (0x20 | 0x3);		
 	static const unsigned int TASK_STATE_SEGMENT_SELECTOR = 0x28;
-	static const unsigned int TASK_STATE_SEGMENT_IDX = 0x5;	/* TSS¶ÎÃèÊö·ûÔÚGDTÖĞµÄÎ»ÖÃ */
+	static const unsigned int TASK_STATE_SEGMENT_IDX = 0x5;	/* TSSæ®µæè¿°ç¬¦åœ¨GDTä¸­çš„ä½ç½® */
 
-	/* Ò³Ä¿Â¼¡¢ºËĞÄÌ¬Ò³±í¡¢ÓÃ»§Ì¬Ò³±íÔÚÎïÀíÄÚ´æÖĞµÄÆğÊ¼µØÖ· */
+	/* é¡µç›®å½•ã€æ ¸å¿ƒæ€é¡µè¡¨ã€ç”¨æˆ·æ€é¡µè¡¨åœ¨ç‰©ç†å†…å­˜ä¸­çš„èµ·å§‹åœ°å€ */
 	static const unsigned long PAGE_DIRECTORY_BASE_ADDRESS = 0x200000;
 	static const unsigned long KERNEL_PAGE_TABLE_BASE_ADDRESS = 0x201000;
 
@@ -36,14 +36,14 @@ public:
 	static const unsigned long USER_PAGE_TABLE_BASE_ADDRESS = 0x202000;
 	static const unsigned long USER_PAGE_TABLE_CNT = 2;
 	
-	/* ÄÚºË¿Õ¼ä´óĞ¡ 4M 0xC0000000 - 0xC0400000 1 PageTable */
+	/* å†…æ ¸ç©ºé—´å¤§å° 4M 0xC0000000 - 0xC0400000 1 PageTable */
 	static const unsigned int KERNEL_SPACE_SIZE = 0x400000;
 	static const unsigned long KERNEL_SPACE_START_ADDRESS	= 0xC0000000;
 	
 public:
-	static Machine& Instance();			/* ·µ»Øµ¥Ì¬ÀàµÄinstance */
-	void LoadIDT();						/* °Ñ½¨Á¢ºÃµÄIDT±íµÄ»ùµØÖ·ºÍ³¤¶È¼ÓÔØ½øIDTR¼Ä´æÆ÷ */
-	void LoadGDT();						/* °Ñ½¨Á¢ºÃµÄGDT±íµÄ»ùµØÖ·ºÍ³¤¶È¼ÓÔØ½øIDTR¼Ä´æÆ÷ */
+	static Machine& Instance();			/* è¿”å›å•æ€ç±»çš„instance */
+	void LoadIDT();						/* æŠŠå»ºç«‹å¥½çš„IDTè¡¨çš„åŸºåœ°å€å’Œé•¿åº¦åŠ è½½è¿›IDTRå¯„å­˜å™¨ */
+	void LoadGDT();						/* æŠŠå»ºç«‹å¥½çš„GDTè¡¨çš„åŸºåœ°å€å’Œé•¿åº¦åŠ è½½è¿›IDTRå¯„å­˜å™¨ */
 	void LoadTaskRegister();
 
 	void InitIDT();
@@ -62,16 +62,16 @@ public:
 	
 	/* property functions */
 public:
-	IDT& GetIDT();						/* »ñÈ¡µ±Ç°ÕıÔÚÊ¹ÓÃµÄIDT */
-	GDT& GetGDT();						/* »ñÈ¡µ±Ç°ÕıÔÚÊ¹ÓÃµÄGDT */
-	PageDirectory& GetPageDirectory();	/* »ñÈ¡µ±Ç°ÕıÔÚÊ¹ÓÃµÄÒ³Ä¿Â¼±í */
-	PageTable& GetKernelPageTable();	/* »ñÈ¡²Ù×÷ÏµÍ³ÄÚºËËùÊ¹ÓÃµÄÒ³±í£¬ÓÃÓÚmap 0xc0000000ÒÔÉÏµØÖ· */
-	PageTable* GetUserPageTableArray();	/* »ñÈ¡ÓÃ»§½ø³ÌÒ³±í£¬¹²Á½ÕÅ£¬±»Ó³ÉäÔÚ0x202000ºÍ0x203000ÉÏ£¬
-										    Ó³Éä0x00000000 - 0x00800000ÓÃ»§Ì¬µØÖ·¿Õ¼ä */
+	IDT& GetIDT();						/* è·å–å½“å‰æ­£åœ¨ä½¿ç”¨çš„IDT */
+	GDT& GetGDT();						/* è·å–å½“å‰æ­£åœ¨ä½¿ç”¨çš„GDT */
+	PageDirectory& GetPageDirectory();	/* è·å–å½“å‰æ­£åœ¨ä½¿ç”¨çš„é¡µç›®å½•è¡¨ */
+	PageTable& GetKernelPageTable();	/* è·å–æ“ä½œç³»ç»Ÿå†…æ ¸æ‰€ä½¿ç”¨çš„é¡µè¡¨ï¼Œç”¨äºmap 0xc0000000ä»¥ä¸Šåœ°å€ */
+	PageTable* GetUserPageTableArray();	/* è·å–ç”¨æˆ·è¿›ç¨‹é¡µè¡¨ï¼Œå…±ä¸¤å¼ ï¼Œè¢«æ˜ å°„åœ¨0x202000å’Œ0x203000ä¸Šï¼Œ
+										    æ˜ å°„0x00000000 - 0x00800000ç”¨æˆ·æ€åœ°å€ç©ºé—´ */
 	TaskStateSegment& GetTaskStateSegment();
 	
 private:
-	static Machine instance;	/* Machineµ¥ÌåÀàÊµÀı */
+	static Machine instance;	/* Machineå•ä½“ç±»å®ä¾‹ */
 	
 	IDT* m_IDT;
 	GDT* m_GDT;

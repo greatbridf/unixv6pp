@@ -34,13 +34,13 @@ struct GDTR
 class GDT
 {
 public:
-	/* »ñÈ¡idxÏàÓ¦µÄ¶ÎÃèÊö·ûµÄÒıÓÃ */
+	/* è·å–idxç›¸åº”çš„æ®µæè¿°ç¬¦çš„å¼•ç”¨ */
 	SegmentDescriptor& GetSegmentDescriptor(int index);
 	
-	/* ÉèÖÃidxÏàÓ¦µÄ¶ÎÃèÊö·û */
+	/* è®¾ç½®idxç›¸åº”çš„æ®µæè¿°ç¬¦ */
 	void SetSegmentDescriptor(int index, SegmentDescriptor& segmentDescriptor);
 	
-	/* ¸ù¾İGDT±íµÄÆğÊ¼µØÖ·(ÏßĞÔµØÖ·)Óë³¤¶ÈÉèÖÃGDTR½á¹¹Ìå */
+	/* æ ¹æ®GDTè¡¨çš„èµ·å§‹åœ°å€(çº¿æ€§åœ°å€)ä¸é•¿åº¦è®¾ç½®GDTRç»“æ„ä½“ */
 	void FormGDTR(GDTR& gdtr);
 	
 private:

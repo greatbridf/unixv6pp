@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * ASCII ÌØÊâ×Ö·û¶¨Òå¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ12ÈÕ¡£
+ * ASCII ç‰¹æ®Šå­—ç¬¦å®šä¹‰ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ12æ—¥ã€‚
  * 
- * ²Î¿¼£º
+ * å‚è€ƒï¼š
  *   https://www.asciitable.com/
  */
 
@@ -50,7 +50,7 @@ public:
     static const uint8_t RS = 30;
     static const uint8_t US = 31;
 
-    /** ¿É¼û×Ö·ûÆğÊ¼Î»ÖÃ¡£º¬¿Õ¸ñ¡£ */
+    /** å¯è§å­—ç¬¦èµ·å§‹ä½ç½®ã€‚å«ç©ºæ ¼ã€‚ */
     static const uint8_t START_OF_VISIBLE_CHARS = 32;
     static const uint8_t END_OF_VISIBLE_CHARS = 126;
 };

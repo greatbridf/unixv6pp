@@ -19,10 +19,10 @@ struct pt_regs{
 };
 
 /* 
- * ´Ë²¿·ÖÊı¾İ½á¹¹ÊÇÖĞ¶Ï·¢ÉúÊ±¿Ì£¬ÓÉÖĞ¶ÏÒşÖ¸Áî±£»¤ÈëÕ»µÄ¼Ä´æÆ÷
- * °üÀ¨eip£¬cs£¬eflags£» Èç¹û·¢ÉúÌØÈ¨¼¶±ä»¯£¬µ¼ÖÂ¶ÑÕ»ÇĞ»»µÄ»°£¬
- * Ó¦Ö¸Áî±£»¤ÈëÕ»µÄ»¹ÓĞÇĞ»»Ç°¶ÑÕ»µÄSS:ESP£»´Ë½á¹¹ÌåËùÓĞ×Ö¶Î¶¼
- * Õ¼¾İ4¸ö×Ö½Ú¡£
+ * æ­¤éƒ¨åˆ†æ•°æ®ç»“æ„æ˜¯ä¸­æ–­å‘ç”Ÿæ—¶åˆ»ï¼Œç”±ä¸­æ–­éšæŒ‡ä»¤ä¿æŠ¤å…¥æ ˆçš„å¯„å­˜å™¨
+ * åŒ…æ‹¬eipï¼Œcsï¼Œeflagsï¼› å¦‚æœå‘ç”Ÿç‰¹æƒçº§å˜åŒ–ï¼Œå¯¼è‡´å †æ ˆåˆ‡æ¢çš„è¯ï¼Œ
+ * åº”æŒ‡ä»¤ä¿æŠ¤å…¥æ ˆçš„è¿˜æœ‰åˆ‡æ¢å‰å †æ ˆçš„SS:ESPï¼›æ­¤ç»“æ„ä½“æ‰€æœ‰å­—æ®µéƒ½
+ * å æ®4ä¸ªå­—èŠ‚ã€‚
  */
 struct pt_context{
 	unsigned int eip;
@@ -32,9 +32,9 @@ struct pt_context{
 	unsigned int xss;
 };
 
-/* ÓÉÖĞ¶ÏÒşÖ¸Áî±£»¤ÈëÕ»µÄÊı¾İ£¬±Èpt_context¶àÔö¼Óerror_code×Ö¶Î */
+/* ç”±ä¸­æ–­éšæŒ‡ä»¤ä¿æŠ¤å…¥æ ˆçš„æ•°æ®ï¼Œæ¯”pt_contextå¤šå¢åŠ error_codeå­—æ®µ */
 struct pte_context{
-	unsigned int error_code;	//ÒşÖ¸ÁîÑ¹ÈëµÄerror code
+	unsigned int error_code;	//éšæŒ‡ä»¤å‹å…¥çš„error code
 	unsigned int eip;
 	unsigned int xcs;
 	unsigned int eflags;
@@ -61,14 +61,14 @@ struct pte_context{
 							pushl %%edx"::);
 							
 							
-/* ×°ÔØºËĞÄÌ¬Êı¾İ¶Î£¬¶ÑÕ»¶ÎÃèÊö·û£¬ÔÚSaveContext()Ö®ºóÇĞ»»½øÈëºËĞÄÌ¬ */
+/* è£…è½½æ ¸å¿ƒæ€æ•°æ®æ®µï¼Œå †æ ˆæ®µæè¿°ç¬¦ï¼Œåœ¨SaveContext()ä¹‹ååˆ‡æ¢è¿›å…¥æ ¸å¿ƒæ€ */
 #define SwitchToKernel() \
 	__asm__ __volatile__("	mov $0x10,	%%dx;	\
 							mov	%%dx,	%%ds;	\
 							mov %%dx,	%%es"::);
 							
 
-/* ±£´æÏÖ³¡Íê³ÉÖ®ºóµ÷ÓÃÖĞ¶Ï(ÏİÈë)´¦Àíº¯Êı¡£*/
+/* ä¿å­˜ç°åœºå®Œæˆä¹‹åè°ƒç”¨ä¸­æ–­(é™·å…¥)å¤„ç†å‡½æ•°ã€‚*/
 #define CallHandler(Class, Handler) \
 	__asm__ __volatile__("	call *%%eax" :: "a" (Class::Handler) );
 	

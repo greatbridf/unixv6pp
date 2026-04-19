@@ -9,7 +9,7 @@ void IDT::SetInterruptGate(int number, unsigned int handler)
 	this->m_Descriptor[number].m_Reserved	= 0;
 	this->m_Descriptor[number].m_Zero		= 0;
 	this->m_Descriptor[number].m_System		= 0;
-	this->m_Descriptor[number].m_Type		= 0xE;	//ÖĞ¶ÏÃÅ£¬ÇåIFÎ»
+	this->m_Descriptor[number].m_Type		= 0xE;	//ä¸­æ–­é—¨ï¼Œæ¸…IFä½
 	this->m_Descriptor[number].m_DPL		= 0x3;
 	this->m_Descriptor[number].m_SegmentPresent	= 1;
 }
@@ -22,14 +22,14 @@ void IDT::SetTrapGate(int number, unsigned int handler)
 	this->m_Descriptor[number].m_Reserved	= 0;
 	this->m_Descriptor[number].m_Zero		= 0;
 	this->m_Descriptor[number].m_System		= 0;
-	this->m_Descriptor[number].m_Type		= 0xF;	//ÏİÈëÃÅ£¬²»ÇåIFÎ»
+	this->m_Descriptor[number].m_Type		= 0xF;	//é™·å…¥é—¨ï¼Œä¸æ¸…IFä½
 	this->m_Descriptor[number].m_DPL		= 0x3;
 	this->m_Descriptor[number].m_SegmentPresent	= 1;
 }
 
 void IDT::DefaultInterruptHandler()
 {
-	/* Êä³ö´íÎóĞÅÏ¢£¬½øÈëËÀÑ­»· */
+	/* è¾“å‡ºé”™è¯¯ä¿¡æ¯ï¼Œè¿›å…¥æ­»å¾ªç¯ */
 	Utility::Panic("Default Interrupt Handler!");
 }
 
@@ -40,7 +40,7 @@ void IDT::DefaultExceptionHandler()
 
 void IDT::FormIDTR(IDTR& idtr)
 {
-	/* ÔÚÆôÓÃ·ÖÒ³»úÖÆÏÂ£¬IDTRÖĞ´æ·ÅµÄÓ¦µ±ÊÇÏßĞÔµØÖ·£¬¶ø·ÇÎïÀíµØÖ· */
+	/* åœ¨å¯ç”¨åˆ†é¡µæœºåˆ¶ä¸‹ï¼ŒIDTRä¸­å­˜æ”¾çš„åº”å½“æ˜¯çº¿æ€§åœ°å€ï¼Œè€Œéç‰©ç†åœ°å€ */
 	idtr.m_BaseAddress = (unsigned int)this;
 	idtr.m_Limit = 2048 - 1;
 }

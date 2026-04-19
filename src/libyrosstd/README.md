@@ -2,4 +2,4 @@
 
 [https://github.com/FlowerBlackG/YurongOS/tree/master/src/lib](https://github.com/FlowerBlackG/YurongOS/tree/master/src/lib)
 
-¸Ã¿âµÄÊµÏÖ±È Unix V6++ µÄ¹¦ÄÜ¸ü·á¸»£¬ÐÔÄÜ¸üºÃ¡£
+è¯¥åº“çš„å®žçŽ°æ¯” Unix V6++ çš„åŠŸèƒ½æ›´ä¸°å¯Œï¼Œæ€§èƒ½æ›´å¥½ã€‚

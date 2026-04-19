@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 
 /*
- * ×Ö·û´®´¦Àíº¯ÊıÍ·ÎÄ¼ş¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ4ÈÕ¡£
+ * å­—ç¬¦ä¸²å¤„ç†å‡½æ•°å¤´æ–‡ä»¶ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ4æ—¥ã€‚
  * 
- * ²Î¿¼£º
+ * å‚è€ƒï¼š
  *   cppreference.com. Null-terminated byte strings
  *     https://en.cppreference.com/w/c/string/byte
  */

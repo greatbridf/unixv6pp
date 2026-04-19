@@ -33,7 +33,7 @@ public:
 
 private:
 	static unsigned short*	m_VideoMemory;
-	/* DebugÊä³ö¿ª¹Ø */
+	/* Debugè¾“å‡ºå¼€å…³ */
 	static bool trace_on;
 };
 

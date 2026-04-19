@@ -4,13 +4,13 @@
 #include "sys/types.h"
 
 /*
- *@comment ¶¨ÒåÒ»Ğ©¹¤¾ß³£Á¿
- * ÓÉÓÚÊ¹ÓÃÁË±àÒëÑ¡Ïî-fno-builtin£¬
- * ±àÒëÆ÷²»Ìá¹©ÕâĞ©³£Á¿µÄ¶¨Òå¡£
+ *@comment å®šä¹‰ä¸€äº›å·¥å…·å¸¸é‡
+ * ç”±äºä½¿ç”¨äº†ç¼–è¯‘é€‰é¡¹-fno-builtinï¼Œ
+ * ç¼–è¯‘å™¨ä¸æä¾›è¿™äº›å¸¸é‡çš„å®šä¹‰ã€‚
  */
 #define NULL	0
 
-/* ±£´æÏµÍ³Ê±¼äĞÅÏ¢µÄ½á¹¹Ìå */
+/* ä¿å­˜ç³»ç»Ÿæ—¶é—´ä¿¡æ¯çš„ç»“æ„ä½“ */
 struct SystemTime
 {
 	int Second;		/* Seconds: 0 ~ 59 */
@@ -22,17 +22,17 @@ struct SystemTime
 	int DayOfWeek;	/* Days since Sunday: 1 ~ 7 */
 };
 
-/* ¼ÇÂ¼½ø³ÌÊ¹ÓÃµÄÄÚºËÌ¬ºÍÓÃ»§Ì¬ÏÂCPUÊ±¼äµÄ½á¹¹Ìå */
+/* è®°å½•è¿›ç¨‹ä½¿ç”¨çš„å†…æ ¸æ€å’Œç”¨æˆ·æ€ä¸‹CPUæ—¶é—´çš„ç»“æ„ä½“ */
 struct tms
 {
-	int utime;		/* ½ø³ÌÓÃ»§Ì¬CPUÊ±¼ä */
-	int stime;		/* ½ø³ÌºËĞÄÌ¬CPUÊ±¼ä */
-	int cutime;		/* ×Ó½ø³ÌÓÃ»§Ì¬Ê±¼ä×ÜºÍ */
-	int cstime;		/* ×Ó½ø³ÌºËĞÄÌ¬Ê±¼ä×ÜºÍ */
+	int utime;		/* è¿›ç¨‹ç”¨æˆ·æ€CPUæ—¶é—´ */
+	int stime;		/* è¿›ç¨‹æ ¸å¿ƒæ€CPUæ—¶é—´ */
+	int cutime;		/* å­è¿›ç¨‹ç”¨æˆ·æ€æ—¶é—´æ€»å’Œ */
+	int cstime;		/* å­è¿›ç¨‹æ ¸å¿ƒæ€æ—¶é—´æ€»å’Œ */
 };
 
 /*
- *@comment Ò»Ğ©¾­³£±»Ê¹ÓÃµ½µÄ¹¤¾ßº¯Êı
+ *@comment ä¸€äº›ç»å¸¸è¢«ä½¿ç”¨åˆ°çš„å·¥å…·å‡½æ•°
  *
  *
  */
@@ -50,22 +50,22 @@ public:
 #endif
 
 	/* @comment
-	 * ÓÃÓÚ´ÓÎïÀíµØÖ·src copy µ½ÎïÀíµØÖ·des 1¸öbyte
+	 * ç”¨äºä»ç‰©ç†åœ°å€src copy åˆ°ç‰©ç†åœ°å€des 1ä¸ªbyte
 	 */
 	static void CopySeg(unsigned long src, unsigned long des);
 	static void CopySeg2(unsigned long src, unsigned long des);
-	/* ÌáÈ¡²ÎÊıdevÖĞµÄÖ÷Éè±¸ºÅmajor£¬¸ß8±ÈÌØ */
+	/* æå–å‚æ•°devä¸­çš„ä¸»è®¾å¤‡å·majorï¼Œé«˜8æ¯”ç‰¹ */
 	static short GetMajor(const short dev);
-	/* ÌáÈ¡²ÎÊıdevÖĞµÄ´ÎÉè±¸ºÅminor£¬µÍ8±ÈÌØ */
+	/* æå–å‚æ•°devä¸­çš„æ¬¡è®¾å¤‡å·minorï¼Œä½8æ¯”ç‰¹ */
 	static short GetMinor(const short dev);
-	/* ÉèÖÃ²ÎÊıdevÖĞµÄÖ÷Éè±¸ºÅ²¿·Ö£¬¸ß8±ÈÌØ */
+	/* è®¾ç½®å‚æ•°devä¸­çš„ä¸»è®¾å¤‡å·éƒ¨åˆ†ï¼Œé«˜8æ¯”ç‰¹ */
 	static short SetMajor(short dev, const short value);
-	/* ÉèÖÃ²ÎÊıdevÖĞµÄ´ÎÉè±¸ºÅ²¿·Ö£¬µÍ8±ÈÌØ */
+	/* è®¾ç½®å‚æ•°devä¸­çš„æ¬¡è®¾å¤‡å·éƒ¨åˆ†ï¼Œä½8æ¯”ç‰¹ */
 	static short SetMinor(short dev, const short vlaue);
-	/* Êä³ö´íÎóĞÅÏ¢£¬È»ºóËÀÑ­»· */
+	/* è¾“å‡ºé”™è¯¯ä¿¡æ¯ï¼Œç„¶åæ­»å¾ªç¯ */
 	static void Panic(const char* str);
 
-	/* ÒÔsrcÎªÔ´µØÖ·£¬dstÎªÄ¿µÄµØÖ·£¬¸´ÖÆcount¸öË«×Ö */
+	/* ä»¥srcä¸ºæºåœ°å€ï¼Œdstä¸ºç›®çš„åœ°å€ï¼Œå¤åˆ¶countä¸ªåŒå­— */
 	static void DWordCopy(int* src, int* dst, int count);
 
 	static int Min(int a, int b);
@@ -75,10 +75,10 @@ public:
 	/* Convert BCD to Binary */
 	static int BCDToBinary(int value);
 
-	/* ÓÃÓÚÔÚ¶Á¡¢Ğ´ÎÄ¼şÊ±£¬¸ßËÙ»º´æÓëÓÃ»§Ö¸¶¨Ä¿±êÄÚ´æÇøÓòÖ®¼äÊı¾İ´«ËÍ */
+	/* ç”¨äºåœ¨è¯»ã€å†™æ–‡ä»¶æ—¶ï¼Œé«˜é€Ÿç¼“å­˜ä¸ç”¨æˆ·æŒ‡å®šç›®æ ‡å†…å­˜åŒºåŸŸä¹‹é—´æ•°æ®ä¼ é€ */
 	static void IOMove(unsigned char* from, unsigned char* to, int count);
 
-	/* ¸ù¾İSystemTime½á¹¹ÌåÖĞµÄÖµ¼ÆËã³öÄÚºË¸ñÊ½µÄÊ±¼äÖµ£º´Ó1970Äê1ÔÂ1ÈÕ0Ê±ÖÁµ±Ç°µÄÃëÊı */
+	/* æ ¹æ®SystemTimeç»“æ„ä½“ä¸­çš„å€¼è®¡ç®—å‡ºå†…æ ¸æ ¼å¼çš„æ—¶é—´å€¼ï¼šä»1970å¹´1æœˆ1æ—¥0æ—¶è‡³å½“å‰çš„ç§’æ•° */
 	static unsigned int MakeKernelTime(struct SystemTime* pTime);
 
 	static bool IsLeapYear(int year);
@@ -86,11 +86,11 @@ public:
 	static unsigned int DaysInYear(int year);
 
 	static const unsigned int borrowedPTE = 256;
-	static const unsigned int SECONDS_IN_MINUTE = 60;	/* Ò»·ÖÖÓ60Ãë */
-	static const unsigned int SECONDS_IN_HOUR = 3600;	/* Ò»Ğ¡Ê±3600Ãë */
-	static const unsigned int SECONDS_IN_DAY = 86400;	/* Ò»Ìì86400Ãë */
+	static const unsigned int SECONDS_IN_MINUTE = 60;	/* ä¸€åˆ†é’Ÿ60ç§’ */
+	static const unsigned int SECONDS_IN_HOUR = 3600;	/* ä¸€å°æ—¶3600ç§’ */
+	static const unsigned int SECONDS_IN_DAY = 86400;	/* ä¸€å¤©86400ç§’ */
 
-	/* Ä³¸öÔÂ·İÇ°¾­¹ıµÄÌìÊı */
+	/* æŸä¸ªæœˆä»½å‰ç»è¿‡çš„å¤©æ•° */
 	static const unsigned int DaysBeforeMonth[13];
 };
 

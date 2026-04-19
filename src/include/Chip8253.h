@@ -2,24 +2,24 @@
 #define CHIP8253_H
 
 /*
- * ¶¨Òå¶Ô8253¿É±à³Ì¶¨Ê±Ğ¾Æ¬(PIT)µÄ²Ù×÷¡£
+ * å®šä¹‰å¯¹8253å¯ç¼–ç¨‹å®šæ—¶èŠ¯ç‰‡(PIT)çš„æ“ä½œã€‚
  *
- * 8253Ğ¾Æ¬ÓÃÓÚ²úÉú¹Ì¶¨¼ä¸ôµÄÊ±ÖÓÖĞ¶Ï¡£
+ * 8253èŠ¯ç‰‡ç”¨äºäº§ç”Ÿå›ºå®šé—´éš”çš„æ—¶é’Ÿä¸­æ–­ã€‚
  */
 class Chip8253
 {
 public:
-	/* ¶Ô8253Ê±ÖÓĞ¾Æ¬½øĞĞ³õÊ¼»¯£¬Ä¬ÈÏÃ¿Ãë²úÉú60´ÎÊ±ÖÓÖĞ¶Ï */
+	/* å¯¹8253æ—¶é’ŸèŠ¯ç‰‡è¿›è¡Œåˆå§‹åŒ–ï¼Œé»˜è®¤æ¯ç§’äº§ç”Ÿ60æ¬¡æ—¶é’Ÿä¸­æ–­ */
 	static void Init(int ticks = 60); 
 
 private:
-	/* ÏÂÃæÊÇÒ»Ğ©¹ØÓÚ¶Ë¿ÚµØÖ·¡¢ÃüÁîÖµºÍ¼ÆÊıÖµµÄ³£Á¿ */
-	static const unsigned int INPUT_FREQ = 1193180;		/* Ğ¾Æ¬ÊäÈëÆµÂÊÎª1.193180MHz */
-	static const unsigned short CNT0_PORT = 0x40;		/* ¼ÆÊıÆ÷0µÄ¶Ë¿ÚµØÖ·40H */
-	static const unsigned short CTRLWRD_PORT = 0x43;	/* ¿ØÖÆ×Ö¶Ë¿ÚµØÖ·43H */
-	static const unsigned char CTRLCMD_SEL0 = 0x00;		/* Ñ¡Ôñ¼ÆÊıÆ÷0 */
-	static const unsigned char CTRLCMD_MODE3 = 0x06;	/* ¼ÆÊıÄ£Ê½: Êä³ö¹Ì¶¨¼ä¸ô¡¢ÎŞÏŞÑ­»·µÄ·½²¨,×÷ÎªÊ±ÖÓÖĞ¶Ï */	
-	static const unsigned char CTRLCMD_RW = 0x30;		/* ¼ÆÊıÖµ¶ÁĞ´Ä£Ê½: Ğ´Èë,16±ÈÌØ,ÏÈµÍ×Ö½Ú,ºó¸ß×Ö½Ú */
+	/* ä¸‹é¢æ˜¯ä¸€äº›å…³äºç«¯å£åœ°å€ã€å‘½ä»¤å€¼å’Œè®¡æ•°å€¼çš„å¸¸é‡ */
+	static const unsigned int INPUT_FREQ = 1193180;		/* èŠ¯ç‰‡è¾“å…¥é¢‘ç‡ä¸º1.193180MHz */
+	static const unsigned short CNT0_PORT = 0x40;		/* è®¡æ•°å™¨0çš„ç«¯å£åœ°å€40H */
+	static const unsigned short CTRLWRD_PORT = 0x43;	/* æ§åˆ¶å­—ç«¯å£åœ°å€43H */
+	static const unsigned char CTRLCMD_SEL0 = 0x00;		/* é€‰æ‹©è®¡æ•°å™¨0 */
+	static const unsigned char CTRLCMD_MODE3 = 0x06;	/* è®¡æ•°æ¨¡å¼: è¾“å‡ºå›ºå®šé—´éš”ã€æ— é™å¾ªç¯çš„æ–¹æ³¢,ä½œä¸ºæ—¶é’Ÿä¸­æ–­ */	
+	static const unsigned char CTRLCMD_RW = 0x30;		/* è®¡æ•°å€¼è¯»å†™æ¨¡å¼: å†™å…¥,16æ¯”ç‰¹,å…ˆä½å­—èŠ‚,åé«˜å­—èŠ‚ */
 };
 
 #endif

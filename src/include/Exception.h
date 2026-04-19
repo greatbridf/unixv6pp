@@ -4,12 +4,12 @@
 #include "Regs.h"
 
 /* 
- * ExceptionÀà·â×°I386Æ½Ì¨ÉÏINT 0 - 31ºÅ·¶Î§Òì³£µÄ´¦Àíº¯Êı¡£
+ * Exceptionç±»å°è£…I386å¹³å°ä¸ŠINT 0 - 31å·èŒƒå›´å¼‚å¸¸çš„å¤„ç†å‡½æ•°ã€‚
  * 
- * ¶ÔÓÚÃ¿Ò»ÖÖ¿ÉÄÜ²úÉúµÄÒì³££¬ExceptionÀàÖĞÌá¹©¶Ô¸ÃÒì³£µÄ´¦Àí
- * Èë¿Úº¯Êı(Entrance)ºÍÒì³£´¦Àíº¯Êı(Handler)£¬Èë¿Úº¯Êı×÷ÎªÈë¿Ú
- * µØÖ·¼ÇÂ¼ÔÚÖĞ¶ÏÃèÊö·û±íIDTÖĞ£¬Òì³£´¦Àíº¯ÊıÖ´ĞĞ¾ßÌåÒì³£´¦Àí
- * Âß¼­¡£
+ * å¯¹äºæ¯ä¸€ç§å¯èƒ½äº§ç”Ÿçš„å¼‚å¸¸ï¼ŒExceptionç±»ä¸­æä¾›å¯¹è¯¥å¼‚å¸¸çš„å¤„ç†
+ * å…¥å£å‡½æ•°(Entrance)å’Œå¼‚å¸¸å¤„ç†å‡½æ•°(Handler)ï¼Œå…¥å£å‡½æ•°ä½œä¸ºå…¥å£
+ * åœ°å€è®°å½•åœ¨ä¸­æ–­æè¿°ç¬¦è¡¨IDTä¸­ï¼Œå¼‚å¸¸å¤„ç†å‡½æ•°æ‰§è¡Œå…·ä½“å¼‚å¸¸å¤„ç†
+ * é€»è¾‘ã€‚
  */
 
 class Exception
@@ -18,87 +18,87 @@ public:
 	Exception();
 	~Exception();
 
-	//³ıÁã´í(INT 0)
+	//é™¤é›¶é”™(INT 0)
 	static void DivideErrorEntrance();
 	static void DivideError(struct pt_regs* regs, struct pt_context* context);
 
-	//µ÷ÊÔÒì³£(INT 1)
+	//è°ƒè¯•å¼‚å¸¸(INT 1)
 	static void DebugEntrance();
 	static void Debug(struct pt_regs* regs, struct pt_context* context);
 
-	//NMI·ÇÆÁ±ÎÖĞ¶Ï(INT 2)
+	//NMIéå±è”½ä¸­æ–­(INT 2)
 	static void NMIEntrance();
 	static void NMI(struct pt_regs* regs, struct pt_context* context);
 
-	//µ÷ÊÔ¶Ïµã(INT 3)
+	//è°ƒè¯•æ–­ç‚¹(INT 3)
 	static void BreakpointEntrance();
 	static void Breakpoint(struct pt_regs* regs, struct pt_context* context);
 
-	//Òç³ö(INT 4)
+	//æº¢å‡º(INT 4)
 	static void OverflowEntrance();
 	static void Overflow(struct pt_regs* regs, struct pt_context* context);
 
-	//BOUNDÖ¸ÁîÒì³£(INT 5)
+	//BOUNDæŒ‡ä»¤å¼‚å¸¸(INT 5)
 	static void BoundEntrance();
 	static void Bound(struct pt_regs* regs, struct pt_context* context);
 
-	//ÎŞĞ§²Ù×÷Âë(INT 6)
+	//æ— æ•ˆæ“ä½œç (INT 6)
 	static void InvalidOpcodeEntrance();
 	static void InvalidOpcode(struct pt_regs* regs, struct pt_context* context);
 
-	//Éè±¸²»¿ÉÓÃ(INT 7)
+	//è®¾å¤‡ä¸å¯ç”¨(INT 7)
 	static void DeviceNotAvailableEntrance();
 	static void DeviceNotAvailable(struct pt_regs* regs, struct pt_context* context);
 
-	//Ë«ÖØ´íÎó(INT 8)  *ÓĞ³ö´íÂë*
+	//åŒé‡é”™è¯¯(INT 8)  *æœ‰å‡ºé”™ç *
 	static void DoubleFaultEntrance();
 	static void DoubleFault(struct pt_regs* regs, struct pte_context* context);
 
-	//Ğ­´¦ÀíÆ÷¶ÎÔ½½ç(INT 9)
+	//åå¤„ç†å™¨æ®µè¶Šç•Œ(INT 9)
 	static void CoprocessorSegmentOverrunEntrance();
 	static void CoprocessorSegmentOverrun(struct pt_regs* regs, struct pt_context* context);
 
-	//ÎŞĞ§TSS(INT 10)  *ÓĞ³ö´íÂë*
+	//æ— æ•ˆTSS(INT 10)  *æœ‰å‡ºé”™ç *
 	static void InvalidTSSEntrance();
 	static void InvalidTSS(struct pt_regs* regs, struct pte_context* context);
 
-	//¶Î²»´æÔÚ(INT 11)  *ÓĞ³ö´íÂë*
+	//æ®µä¸å­˜åœ¨(INT 11)  *æœ‰å‡ºé”™ç *
 	static void SegmentNotPresentEntrance();
 	static void SegmentNotPresent(struct pt_regs* regs, struct pte_context* context);
 
-	//¶ÑÕ»¶Î´íÎó(INT 12)  *ÓĞ³ö´íÂë*
+	//å †æ ˆæ®µé”™è¯¯(INT 12)  *æœ‰å‡ºé”™ç *
 	static void StackSegmentErrorEntrance();
 	static void StackSegmentError(struct pt_regs* regs, struct pte_context* context);
 
-	//Ò»°ã±£»¤ĞÔÒì³£(INT 13)  *ÓĞ³ö´íÂë*
+	//ä¸€èˆ¬ä¿æŠ¤æ€§å¼‚å¸¸(INT 13)  *æœ‰å‡ºé”™ç *
 	static void GeneralProtectionEntrance();
 	static void GeneralProtection(struct pt_regs* regs, struct pte_context* context);
 
-	//È±Ò³Òì³£(INT 14)  *ÓĞ³ö´íÂë*
+	//ç¼ºé¡µå¼‚å¸¸(INT 14)  *æœ‰å‡ºé”™ç *
 	static void PageFaultEntrance();
 	static void PageFault(struct pt_regs* regs, struct pte_context* context);
 
-	//Intel±£ÁôÒì³£(INT 15)
-	/* INT 15ºÍINT 20 - 31Í¬Ñù²ÉÓÃÄ¬ÈÏµÄ´¦Àíº¯ÊıIDT::DefaultExceptionHandler()£¬ÎŞĞèÔÚExcpetionÀàÖĞ¶¨Òå */
+	//Intelä¿ç•™å¼‚å¸¸(INT 15)
+	/* INT 15å’ŒINT 20 - 31åŒæ ·é‡‡ç”¨é»˜è®¤çš„å¤„ç†å‡½æ•°IDT::DefaultExceptionHandler()ï¼Œæ— éœ€åœ¨Excpetionç±»ä¸­å®šä¹‰ */
 
-	//x87 FPU¸¡µã´íÎó(INT 16)
+	//x87 FPUæµ®ç‚¹é”™è¯¯(INT 16)
 	static void CoprocessorErrorEntrance();
 	static void CoprocessorError(struct pt_regs* regs, struct pt_context* context);
 
-	//¶ÔÆëĞ£Ñé(INT 17)  *ÓĞ³ö´íÂë*
+	//å¯¹é½æ ¡éªŒ(INT 17)  *æœ‰å‡ºé”™ç *
 	static void AlignmentCheckEntrance();
 	static void AlignmentCheck(struct pt_regs* regs, struct pte_context* context);
 
-	//»úÆ÷¼ì²é(INT 18)
+	//æœºå™¨æ£€æŸ¥(INT 18)
 	static void MachineCheckEntrance();
 	static void MachineCheck(struct pt_regs* regs, struct pt_context* context);
 
-	//SIMD¸¡µãÒì³£(INT 19)
+	//SIMDæµ®ç‚¹å¼‚å¸¸(INT 19)
 	static void SIMDExceptionEntrance();
 	static void SIMDException(struct pt_regs* regs, struct pt_context* context);
 
-	//Intel±£ÁôÒì³£(INT 20 - INT 31)Õâ²¿·ÖÎªIntel±£ÁôÎ´Ê¹ÓÃµÄÒì³£ÏòÁ¿
-	/* ²ÉÓÃÄ¬ÈÏµÄ´¦Àíº¯ÊıIDT::DefaultExceptionHandler() */
+	//Intelä¿ç•™å¼‚å¸¸(INT 20 - INT 31)è¿™éƒ¨åˆ†ä¸ºIntelä¿ç•™æœªä½¿ç”¨çš„å¼‚å¸¸å‘é‡
+	/* é‡‡ç”¨é»˜è®¤çš„å¤„ç†å‡½æ•°IDT::DefaultExceptionHandler() */
 };
 
 #endif

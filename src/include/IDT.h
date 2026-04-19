@@ -2,57 +2,57 @@
 #define	IDT_H
 
 /* 
- * ¶¨ÒåÓëIDT(ÖĞ¶ÏÃèÊö·û±í)Ïà¹ØµÄÀà¡£
- * Ö÷ÒªÊÇÏÂÃæÕâ3¸öclass: 
+ * å®šä¹‰ä¸IDT(ä¸­æ–­æè¿°ç¬¦è¡¨)ç›¸å…³çš„ç±»ã€‚
+ * ä¸»è¦æ˜¯ä¸‹é¢è¿™3ä¸ªclass: 
  * 	1. struct GateDescriptor
  *	2. struct IDTR
  * 	3. class IDT
  */
 
-/* ¶¨ÒåÁËIDTÖĞÃ¿Ò»¸öÃÅÃèÊö·ûµÄ¸ñÊ½ */
+/* å®šä¹‰äº†IDTä¸­æ¯ä¸€ä¸ªé—¨æè¿°ç¬¦çš„æ ¼å¼ */
 struct GateDescriptor
 {
-	unsigned short	m_Low16BitsOffset;			/*OFFSETµÄµÍ16Î»*/
-	unsigned short	m_SegmentSelector;			/*¶ÎÑ¡Ôñ×Ó*/
-	unsigned char	m_Reserved : 5;				/*±£ÁôÇøÓò£¬³¤5¸öbit*/
-	unsigned char	m_Zero : 3;					/*È«ÁãÇøÓò*/
-	unsigned char	m_Type : 4;					/*ÃèÊö·ûÀàĞÍ.  0xEÎªÖĞ¶ÏÃÅ  0xFÎªÏİÈëÃÅ*/
-	unsigned char	m_System : 1;				/*1£ºÏµÍ³ÃèÊö·û  0£º´úÂë¡¢Êı¾İ¶ÎÃèÊö·û*/
-	unsigned char	m_DPL : 2;					/*ÃèÊö·û·ÃÎÊÓÅÏÈ¼¶*/
-	unsigned char	m_SegmentPresent : 1;		/*´æÔÚ±êÖ¾Î»*/
-	unsigned short	m_High16BitsOffset;			/*OFFSETµÄ¸ß16Î»*/
+	unsigned short	m_Low16BitsOffset;			/*OFFSETçš„ä½16ä½*/
+	unsigned short	m_SegmentSelector;			/*æ®µé€‰æ‹©å­*/
+	unsigned char	m_Reserved : 5;				/*ä¿ç•™åŒºåŸŸï¼Œé•¿5ä¸ªbit*/
+	unsigned char	m_Zero : 3;					/*å…¨é›¶åŒºåŸŸ*/
+	unsigned char	m_Type : 4;					/*æè¿°ç¬¦ç±»å‹.  0xEä¸ºä¸­æ–­é—¨  0xFä¸ºé™·å…¥é—¨*/
+	unsigned char	m_System : 1;				/*1ï¼šç³»ç»Ÿæè¿°ç¬¦  0ï¼šä»£ç ã€æ•°æ®æ®µæè¿°ç¬¦*/
+	unsigned char	m_DPL : 2;					/*æè¿°ç¬¦è®¿é—®ä¼˜å…ˆçº§*/
+	unsigned char	m_SegmentPresent : 1;		/*å­˜åœ¨æ ‡å¿—ä½*/
+	unsigned short	m_High16BitsOffset;			/*OFFSETçš„é«˜16ä½*/
 }__attribute__((packed));
-/* Ò»µãËµÃ÷£º
- * 	__attribute__((packed))ÊÇÎªÁË·ÀÖ¹ÀàµÄ³ÉÔ±±äÁ¿£¬ÓÉÓÚ×Ö½Ú¶ÔÆëĞèÒª¶ø²úÉú¶àÓà¼äÏ¶£¬
- * 	»áµ¼ÖÂsizeof(GateDescriptor)´óÓÚ8 Byte¡£ Èç¹ûÄÇÑùµÄ»°£¬CPU¸ù¾İ[GDTR+ ÖĞ¶ÏºÅ*8]À´
- * 	»ñÈ¡IDTÖĞµÄDescriptor¾Í»á×Ö½Ú´íÎ»¡£(²»¹ıÕâÀï²»ÓÃpackedÊôĞÔ, È«²¿±ÈÌØÎ»Ö®ºÍÓ¦¸ÃÒ²ÊÇ8byte)
+/* ä¸€ç‚¹è¯´æ˜ï¼š
+ * 	__attribute__((packed))æ˜¯ä¸ºäº†é˜²æ­¢ç±»çš„æˆå‘˜å˜é‡ï¼Œç”±äºå­—èŠ‚å¯¹é½éœ€è¦è€Œäº§ç”Ÿå¤šä½™é—´éš™ï¼Œ
+ * 	ä¼šå¯¼è‡´sizeof(GateDescriptor)å¤§äº8 Byteã€‚ å¦‚æœé‚£æ ·çš„è¯ï¼ŒCPUæ ¹æ®[GDTR+ ä¸­æ–­å·*8]æ¥
+ * 	è·å–IDTä¸­çš„Descriptorå°±ä¼šå­—èŠ‚é”™ä½ã€‚(ä¸è¿‡è¿™é‡Œä¸ç”¨packedå±æ€§, å…¨éƒ¨æ¯”ç‰¹ä½ä¹‹å’Œåº”è¯¥ä¹Ÿæ˜¯8byte)
  */
 
 
-/* IDT±í»ùµØÖ·ÓëÏŞ³¤½á¹¹Ìå¶¨Òå£¬ÓÃÓÚ¼ÓÔØµ½IDTR¼Ä´æÆ÷ */
+/* IDTè¡¨åŸºåœ°å€ä¸é™é•¿ç»“æ„ä½“å®šä¹‰ï¼Œç”¨äºåŠ è½½åˆ°IDTRå¯„å­˜å™¨ */
 struct IDTR
 {
-	unsigned short	m_Limit;		/* IDTµÄÏŞ³¤ */
-	unsigned int	m_BaseAddress;	/* IDTµÄÆğÊ¼µØÖ·(ÏßĞÔµØÖ·) */
+	unsigned short	m_Limit;		/* IDTçš„é™é•¿ */
+	unsigned int	m_BaseAddress;	/* IDTçš„èµ·å§‹åœ°å€(çº¿æ€§åœ°å€) */
 }__attribute__((packed));
 
 
-/* IDTÖĞ¶ÏÃèÊö·û±íµÄ¶¨Òå£¬ÓÉ256¸öGateDescriptor×é³É£¬×Ü³¤¶ÈÎª2048×Ö½Ú */
+/* IDTä¸­æ–­æè¿°ç¬¦è¡¨çš„å®šä¹‰ï¼Œç”±256ä¸ªGateDescriptorç»„æˆï¼Œæ€»é•¿åº¦ä¸º2048å­—èŠ‚ */
 class IDT
 {
 	/* static member functions */
 public:
-	static void DefaultInterruptHandler();		/* Ä¬ÈÏÖĞ¶Ï´¦Àí³ÌĞò */
-	static void DefaultExceptionHandler();		/* Ä¬ÈÏÒì³£´¦Àí³ÌĞò */
+	static void DefaultInterruptHandler();		/* é»˜è®¤ä¸­æ–­å¤„ç†ç¨‹åº */
+	static void DefaultExceptionHandler();		/* é»˜è®¤å¼‚å¸¸å¤„ç†ç¨‹åº */
 
 public:
-	/* ¸ù¾İÖĞ¶ÏºÅ¡¢ÖĞ¶Ï/Òì³£´¦Àí³ÌĞòÈë¿ÚµØÖ·£¬ÉèÖÃIDT±íÖĞ¶ÔÓ¦µÄÖĞ¶ÏÃÅÃèÊö·û */
+	/* æ ¹æ®ä¸­æ–­å·ã€ä¸­æ–­/å¼‚å¸¸å¤„ç†ç¨‹åºå…¥å£åœ°å€ï¼Œè®¾ç½®IDTè¡¨ä¸­å¯¹åº”çš„ä¸­æ–­é—¨æè¿°ç¬¦ */
 	void SetInterruptGate(int number, unsigned int handler);
 	
-	/* ¸ù¾İÖĞ¶ÏºÅ¡¢ÖĞ¶Ï/Òì³£´¦Àí³ÌĞòÈë¿ÚµØÖ·£¬ÉèÖÃIDT±íÖĞ¶ÔÓ¦µÄÏİÈëÃÅÃèÊö·û */
+	/* æ ¹æ®ä¸­æ–­å·ã€ä¸­æ–­/å¼‚å¸¸å¤„ç†ç¨‹åºå…¥å£åœ°å€ï¼Œè®¾ç½®IDTè¡¨ä¸­å¯¹åº”çš„é™·å…¥é—¨æè¿°ç¬¦ */
 	void SetTrapGate(int number, unsigned int handler);
 	
-	/* ¸ù¾İIDT±íµÄÆğÊ¼µØÖ·(ÏßĞÔµØÖ·)Óë³¤¶ÈÉèÖÃGDTR½á¹¹Ìå */
+	/* æ ¹æ®IDTè¡¨çš„èµ·å§‹åœ°å€(çº¿æ€§åœ°å€)ä¸é•¿åº¦è®¾ç½®GDTRç»“æ„ä½“ */
 	void FormIDTR(IDTR& idtr);
 
 private:

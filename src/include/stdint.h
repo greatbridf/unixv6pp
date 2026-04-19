@@ -2,8 +2,8 @@
 // https://github.com/FlowerBlackG/YurongOS/blob/master/src/lib/stdint.h
 
 /*
- * ÕûÊıÀàĞÍÍ·ÎÄ¼ş¡£
- * ´´½¨ÓÚ 2022Äê7ÔÂ2ÈÕ¡£
+ * æ•´æ•°ç±»å‹å¤´æ–‡ä»¶ã€‚
+ * åˆ›å»ºäº 2022å¹´7æœˆ2æ—¥ã€‚
  */
 
 #pragma once

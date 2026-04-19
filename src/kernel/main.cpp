@@ -1,4 +1,4 @@
-/* ÄÚºËµÄ³õÊ¼»¯ */
+/* å†…æ ¸çš„åˆå§‹åŒ– */
 
 #include "Utility.h"
 #include "Video.h"
@@ -41,12 +41,12 @@ void clear_screan();
 extern "C" void MasterIRQ7()
 {
 	SaveContext();
-	
+
 	Diagnose::Write("IRQ7 from Master 8259A!\n");
-	
-	//ĞèÒªÔÚÖĞ¶Ï´¦Àí³ÌĞòÄ©Î²ÏÈ8259A·¢ËÍEOIÃüÁî
-	//ÊµÑé·¢ÏÖ£ºÓĞÃ»ÓĞÏÂÃæIOPort::OutByte(0x27, 0x20);Õâ¾äÔËĞĞĞ§¹û¶¼Ò»Ñù£¬±¾À´ÒÔÎª
-	//·¢ËÍEOIÃüÁîÖ®ºó»áÓĞºóĞøµÄIRQ7ÖĞ¶Ï½øÈë£¬ µ«ÊÔÏÂÀ´½á¹ûÊÇIRQ7Ö»»á²úÉúÒ»´Î¡£
+
+	//éœ€è¦åœ¨ä¸­æ–­å¤„ç†ç¨‹åºæœ«å°¾å…ˆ8259Aå‘é€EOIå‘½ä»¤
+	//å®éªŒå‘ç°ï¼šæœ‰æ²¡æœ‰ä¸‹é¢IOPort::OutByte(0x27, 0x20);è¿™å¥è¿è¡Œæ•ˆæœéƒ½ä¸€æ ·ï¼Œæœ¬æ¥ä»¥ä¸º
+	//å‘é€EOIå‘½ä»¤ä¹‹åä¼šæœ‰åç»­çš„IRQ7ä¸­æ–­è¿›å…¥ï¼Œ ä½†è¯•ä¸‹æ¥ç»“æœæ˜¯IRQ7åªä¼šäº§ç”Ÿä¸€æ¬¡ã€‚
 	IOPort::OutByte(Chip8259A::MASTER_IO_PORT_1, Chip8259A::EOI);
 
 	RestoreContext();
@@ -61,19 +61,19 @@ static void callCtors()
 {
 	extern void (*__CTOR_LIST__)();
 	extern void (* __CTOR_END__)();
-	
-	
+
+
 	void (**constructor)() = &__CTOR_LIST__;
 
-	
-	//constructor++;   
-		/*  (¿ÉÒÔÏÈ¿´Ò»ÏÂÁ´½Ó½Å±¾£ºLink.ld)
-		Link scriptÖĞĞŞ¸Ä¹ıºó£¬ÕâÀïµÄtotalÒÑ¾­²»ÊÇconstructorµÄ¸öÊıÁË£¬
-		_CTOR_LIST__µÄµÚÒ»¸öµ¥Ôª¿ªÊ¼¾ÍÊÇglobal/static¶ÔÏóµÄconstructor£¬
-		ËùÒÔ²»ÓÃ constructor++; 
+
+	//constructor++;
+		/*  (å¯ä»¥å…ˆçœ‹ä¸€ä¸‹é“¾æ¥è„šæœ¬ï¼šLink.ld)
+		Link scriptä¸­ä¿®æ”¹è¿‡åï¼Œè¿™é‡Œçš„totalå·²ç»ä¸æ˜¯constructorçš„ä¸ªæ•°äº†ï¼Œ
+		_CTOR_LIST__çš„ç¬¬ä¸€ä¸ªå•å…ƒå¼€å§‹å°±æ˜¯global/staticå¯¹è±¡çš„constructorï¼Œ
+		æ‰€ä»¥ä¸ç”¨ constructor++;
 		*/
-	
-	while(constructor != &__CTOR_END__) //total²»ÊÇconstructorµÄÊıÁ¿£¬¶øÊÇÓÃÓÚ¼ì²âÊÇ·ñµ½ÁË_CTOR_LIST__µÄÄ©Î²
+
+	while(constructor != &__CTOR_END__) //totalä¸æ˜¯constructorçš„æ•°é‡ï¼Œè€Œæ˜¯ç”¨äºæ£€æµ‹æ˜¯å¦åˆ°äº†_CTOR_LIST__çš„æœ«å°¾
 	{
 		(*constructor)();
 		constructor++;
@@ -98,9 +98,9 @@ static void callDtors()
 {
 	extern void (* __DTOR_LIST__)();
 	extern void (* __DTOR_END__)();
-	
+
 	void (**deconstructor)() = &__DTOR_LIST__;
-	
+
 	while(deconstructor != &__DTOR_END__)
 	{
 		(*deconstructor)();
@@ -113,9 +113,9 @@ void main0(void)
 {
 	Machine& machine = Machine::Instance();
 
-	Chip8253::Init(60);	//³õÊ¼»¯Ê±ÖÓÖĞ¶ÏĞ¾Æ¬
+	Chip8253::Init(60);	//åˆå§‹åŒ–æ—¶é’Ÿä¸­æ–­èŠ¯ç‰‡
 	Chip8259A::Init();
-	Chip8259A::IrqEnable(Chip8259A::IRQ_TIMER);		
+	Chip8259A::IrqEnable(Chip8259A::IRQ_TIMER);
 	DMA::Init();
 	Chip8259A::IrqEnable(Chip8259A::IRQ_IDE);
 	Chip8259A::IrqEnable(Chip8259A::IRQ_SLAVE);
@@ -126,22 +126,22 @@ void main0(void)
 	machine.InitGDT();
 	machine.LoadGDT();
 	//init idt
-	machine.InitIDT();	
+	machine.InitIDT();
 	machine.LoadIDT();
 
-	machine.InitPageDirectory();    // ³õÊ¼»¯Ò³Ä¿Â¼¡¢ºËĞÄÌ¬Ò³±í
-	Machine::Instance().InitUserPageTable();     // ³õÊ¼»¯ÓÃ»§Ì¬Ò³±í
-	machine.EnablePageProtection();    //¿ªÆô·ÖÒ³Ä£Ê½
-	/* 
-	 * InitPageDirectory()ÖĞ½«ÏßĞÔµØÖ·0-4MÓ³Éäµ½ÎïÀíÄÚ´æ
-	 * 0-4MÊÇÎª±£Ö¤´Ë×¢ÊÍÒÔÏÂÖÁ±¾º¯Êı½áÎ²µÄ´úÂëÕıÈ·Ö´ĞĞ£¡
+	machine.InitPageDirectory();    // åˆå§‹åŒ–é¡µç›®å½•ã€æ ¸å¿ƒæ€é¡µè¡¨
+	Machine::Instance().InitUserPageTable();     // åˆå§‹åŒ–ç”¨æˆ·æ€é¡µè¡¨
+	machine.EnablePageProtection();    //å¼€å¯åˆ†é¡µæ¨¡å¼
+	/*
+	 * InitPageDirectory()ä¸­å°†çº¿æ€§åœ°å€0-4Mæ˜ å°„åˆ°ç‰©ç†å†…å­˜
+	 * 0-4Mæ˜¯ä¸ºä¿è¯æ­¤æ³¨é‡Šä»¥ä¸‹è‡³æœ¬å‡½æ•°ç»“å°¾çš„ä»£ç æ­£ç¡®æ‰§è¡Œï¼
 	 *
-	 * ÏÖÔÚ£¬³ıÁËCSÊÇÄÚºË³õÊ¼»¯½×¶ÎµÄ¶ÎÑ¡Ôñ×Ó£¬ÆäÓà¶Î¼Ä´æÆ÷È«ÊÇbootÊ¹ÓÃµÄ¶ÎÑ¡Ôñ×Ó£¬ÓÈÆäÊÇSS¡£
-	 * ·Ö¶Îµ¥Ôª¸ø³öµÄÏßĞÔµØÖ·ÊÇ[0,4M)¡£¿ªÆô·ÖÒ³Ä£Ê½ºó£¬Ò»¶¨ÒªÓĞÕâ¶Î¿Õ¼äµÄÓ³Éä¹ØÏµ£¬·ñÔò£¬Í¨²»¹ı¡£
-	 * [4M£¬8M)¿Õ¼äÓÃ»§Çø£¬²»Ó¦¸Ã±»Ó³Éä£¬ËùÒÔÏÈ¿Õ×Å£¬InitUserPageTable(),baseÌî0¡£
+	 * ç°åœ¨ï¼Œé™¤äº†CSæ˜¯å†…æ ¸åˆå§‹åŒ–é˜¶æ®µçš„æ®µé€‰æ‹©å­ï¼Œå…¶ä½™æ®µå¯„å­˜å™¨å…¨æ˜¯bootä½¿ç”¨çš„æ®µé€‰æ‹©å­ï¼Œå°¤å…¶æ˜¯SSã€‚
+	 * åˆ†æ®µå•å…ƒç»™å‡ºçš„çº¿æ€§åœ°å€æ˜¯[0,4M)ã€‚å¼€å¯åˆ†é¡µæ¨¡å¼åï¼Œä¸€å®šè¦æœ‰è¿™æ®µç©ºé—´çš„æ˜ å°„å…³ç³»ï¼Œå¦åˆ™ï¼Œé€šä¸è¿‡ã€‚
+	 * [4Mï¼Œ8M)ç©ºé—´ç”¨æˆ·åŒºï¼Œä¸åº”è¯¥è¢«æ˜ å°„ï¼Œæ‰€ä»¥å…ˆç©ºç€ï¼ŒInitUserPageTable(),baseå¡«0ã€‚
 	 */
 
-	//Ê¹ÓÃ0x10¶Î¼Ä´æÆ÷
+	//ä½¿ç”¨0x10æ®µå¯„å­˜å™¨
 	__asm
 		(" \
 		mov $0x10, %ax\n\t \
@@ -150,7 +150,7 @@ void main0(void)
 		mov %ax, %es\n\t"
 		);
 
-	//½«³õÊ¼»¯¶ÑÕ»ÉèÖÃÎª0xc0400000£¬ÕâÀïÆÆ»µÁË·â×°ĞÔ£¬¿¼ÂÇÊ¹ÓÃ¸üºÃµÄ·½·¨
+	//å°†åˆå§‹åŒ–å †æ ˆè®¾ç½®ä¸º0xc0400000ï¼Œè¿™é‡Œç ´åäº†å°è£…æ€§ï¼Œè€ƒè™‘ä½¿ç”¨æ›´å¥½çš„æ–¹æ³•
 	__asm
 		(
 		" \
@@ -158,18 +158,18 @@ void main0(void)
 		mov $0xc0400000, %esp \n\t \
 		jmp $0x8, $next"
 		);
-	
+
 	__asm ("ud2");
 }
 
-/* Ó¦ÓÃ³ÌĞò´Ómain·µ»Ø£¬½ø³Ì¾ÍÖÕÖ¹ÁË£¬ÕâÈ«ÊÇruntime()µÄ¹¦ÀÍ¡£Ã»ÓĞËü£¬¾ÍÖ»ÄÜÓÃexitÖÕÖ¹½ø³ÌÁË¡£xV6Ã»Õâ¸ö¹¦ÄÜ^-^ */
+/* åº”ç”¨ç¨‹åºä»mainè¿”å›ï¼Œè¿›ç¨‹å°±ç»ˆæ­¢äº†ï¼Œè¿™å…¨æ˜¯runtime()çš„åŠŸåŠ³ã€‚æ²¡æœ‰å®ƒï¼Œå°±åªèƒ½ç”¨exitç»ˆæ­¢è¿›ç¨‹äº†ã€‚xV6æ²¡è¿™ä¸ªåŠŸèƒ½^-^ */
 extern "C" void runtime()
 {
 	/*
-	1. Ïú»ÙruntimeµÄstack Frame
-	2. espÖĞÖ¸ÏòÓÃ»§Õ»ÖĞargcÎ»ÖÃ£¬¶øebpÉĞÎ´ÕıÈ·³õÊ¼»¯
-	3. eaxÖĞ´æ·Å¿ÉÖ´ĞĞ³ÌĞòEntryPoint
-	4~6. exit(0)½áÊø½ø³Ì
+	1. é”€æ¯runtimeçš„stack Frame
+	2. espä¸­æŒ‡å‘ç”¨æˆ·æ ˆä¸­argcä½ç½®ï¼Œè€Œebpå°šæœªæ­£ç¡®åˆå§‹åŒ–
+	3. eaxä¸­å­˜æ”¾å¯æ‰§è¡Œç¨‹åºEntryPoint
+	4~6. exit(0)ç»“æŸè¿›ç¨‹
 	*/
 	__asm("	leave;	\
 			movl %%esp, %%ebp;	\
@@ -180,8 +180,8 @@ extern "C" void runtime()
 }
 
 /*
-  * 1#½ø³ÌÔÚÖ´ĞĞÍêMoveToUserStack()´Óring0ÍË³öµ½ring3ÓÅÏÈ¼¶ºó£¬»áµ÷ÓÃExecShell()£¬´Ëº¯ÊıÍ¨¹ı"int $0x80"
-  * (EAX=execvÏµÍ³µ÷ÓÃºÅ)¼ÓÔØ¡°/Shell.exe¡±³ÌĞò£¬Æä¹¦ÄÜÏàµ±ÓÚÔÚÓÃ»§³ÌĞòÖĞÖ´ĞĞÏµÍ³µ÷ÓÃexecv(char* pathname, char* argv[])¡£
+  * 1#è¿›ç¨‹åœ¨æ‰§è¡Œå®ŒMoveToUserStack()ä»ring0é€€å‡ºåˆ°ring3ä¼˜å…ˆçº§åï¼Œä¼šè°ƒç”¨ExecShell()ï¼Œæ­¤å‡½æ•°é€šè¿‡"int $0x80"
+  * (EAX=execvç³»ç»Ÿè°ƒç”¨å·)åŠ è½½â€œ/Shell.exeâ€ç¨‹åºï¼Œå…¶åŠŸèƒ½ç›¸å½“äºåœ¨ç”¨æˆ·ç¨‹åºä¸­æ‰§è¡Œç³»ç»Ÿè°ƒç”¨execv(char* pathname, char* argv[])ã€‚
   */
 extern "C" void ExecShell()
 {
@@ -193,7 +193,7 @@ extern "C" void ExecShell()
 }
 
 #if 0
-/* ´Ëº¯ÊıtestÎÄ¼ş¼ĞÖĞµÄ´úÂë»áÒıÓÃ£¬µ«Ã²ËÆ¿ÉÒÔÉ¾³ı£¬¼ÇµÃ°ÑËüÉ¾µô*/
+/* æ­¤å‡½æ•°testæ–‡ä»¶å¤¹ä¸­çš„ä»£ç ä¼šå¼•ç”¨ï¼Œä½†è²Œä¼¼å¯ä»¥åˆ é™¤ï¼Œè®°å¾—æŠŠå®ƒåˆ æ‰*/
 extern "C" void Delay()
 {
 	for ( int i = 0; i < 50; i++ )
@@ -256,7 +256,7 @@ int splash();
 
 extern "C" void next()
 {
-	
+
 #ifdef USE_VESA
 	    intptr_t vesaModeInfoAddr = Machine::KERNEL_SPACE_START_ADDRESS + 0x7e00;
 		auto& vesaModeInfo = * (vesa_compat::VbeModeInfo*) vesaModeInfoAddr;
@@ -268,38 +268,38 @@ extern "C" void next()
 		);
 
 		vesa_init(&vesaModeInfo);
-	
-#endif
-	
 
-	//Õâ¸öÊ±ºò0M-4MµÄÄÚ´æÓ³ÉäÒÑ¾­²»±»Ê¹ÓÃÁË£¬ËùÒÔÒªÖØĞÂÓ³ÉäÓÃ»§Ì¬µÄÒ³±í£¬ÎªÓÃ»§Ì¬³ÌĞòÔËĞĞ×öºÃ×¼±¸
+#endif
+
+
+	//è¿™ä¸ªæ—¶å€™0M-4Mçš„å†…å­˜æ˜ å°„å·²ç»ä¸è¢«ä½¿ç”¨äº†ï¼Œæ‰€ä»¥è¦é‡æ–°æ˜ å°„ç”¨æˆ·æ€çš„é¡µè¡¨ï¼Œä¸ºç”¨æˆ·æ€ç¨‹åºè¿è¡Œåšå¥½å‡†å¤‡
 	//Machine::Instance().InitUserPageTable();
 	//FlushPageDirectory();
 
 
 	Machine::Instance().LoadTaskRegister();
 
-	/* »ñÈ¡CMOSµ±Ç°Ê±¼ä£¬ÉèÖÃÏµÍ³Ê±ÖÓ */
+	/* è·å–CMOSå½“å‰æ—¶é—´ï¼Œè®¾ç½®ç³»ç»Ÿæ—¶é’Ÿ */
 	struct SystemTime cTime;
 	CMOSTime::ReadCMOSTime(&cTime);
-	/* MakeKernelTime()¼ÆËã³öÄÚºËÊ±¼ä£¬´Ó1970Äê1ÔÂ1ÈÕ0Ê±ÖÁµ±Ç°µÄÃëÊı */
+	/* MakeKernelTime()è®¡ç®—å‡ºå†…æ ¸æ—¶é—´ï¼Œä»1970å¹´1æœˆ1æ—¥0æ—¶è‡³å½“å‰çš„ç§’æ•° */
 	Time::time = Utility::MakeKernelTime(&cTime);
 
-	/* ´ÓCMOSÖĞ»ñÈ¡ÎïÀíÄÚ´æ´óĞ¡ */
+	/* ä»CMOSä¸­è·å–ç‰©ç†å†…å­˜å¤§å° */
 	unsigned short memSize = 0;	/* size in KB */
 	unsigned char lowMem, highMem;
 
-	/* ÕâÀïÖ»ÊÇ½èÓÃCMOSTimeÀàÖĞµÄReadCMOSByteº¯Êı¶ÁÈ¡CMOSÖĞÎïÀíÄÚ´æ´óĞ¡ĞÅÏ¢ */
+	/* è¿™é‡Œåªæ˜¯å€Ÿç”¨CMOSTimeç±»ä¸­çš„ReadCMOSByteå‡½æ•°è¯»å–CMOSä¸­ç‰©ç†å†…å­˜å¤§å°ä¿¡æ¯ */
 	lowMem = CMOSTime::ReadCMOSByte(CMOSTime::EXTENDED_MEMORY_ABOVE_1MB_LOW);
 	highMem = CMOSTime::ReadCMOSByte(CMOSTime::EXTENDED_MEMORY_ABOVE_1MB_HIGH);
 	memSize = (highMem << 8) + lowMem;
 
-	/* ¼ÓÉÏ1MBÒÔÏÂÎïÀíÄÚ´æÇøÓò£¬¼ÆËã×ÜÄÚ´æÈİÁ¿£¬ÒÔ×Ö½ÚÎªµ¥Î»µÄÄÚ´æ´óĞ¡ */
+	/* åŠ ä¸Š1MBä»¥ä¸‹ç‰©ç†å†…å­˜åŒºåŸŸï¼Œè®¡ç®—æ€»å†…å­˜å®¹é‡ï¼Œä»¥å­—èŠ‚ä¸ºå•ä½çš„å†…å­˜å¤§å° */
 	memSize += 1024; /* KB */
 	// PageManager::PHY_MEM_SIZE = memSize * 1024;
 	// UserPageManager::USER_PAGE_POOL_SIZE = PageManager::PHY_MEM_SIZE - UserPageManager::USER_PAGE_POOL_START_ADDR;
 
-	/* ÕæÕı²Ù×÷ÏµÍ³ÄÚºË³õÊ¼»¯Âß¼­	 */
+	/* çœŸæ­£æ“ä½œç³»ç»Ÿå†…æ ¸åˆå§‹åŒ–é€»è¾‘	 */
 	Kernel::Instance().Initialize();
 	Kernel::Instance().GetProcessManager().SetupProcessZero();
 	isInit = true;
@@ -309,7 +309,7 @@ extern "C" void next()
 
 	Diagnose::Write("test \n");
 
-	/*  ³õÊ¼»¯rootDirInodeºÍÓÃ»§µ±Ç°¹¤×÷Ä¿Â¼£¬ÒÔ±ãNameI()Õı³£¹¤×÷ */
+	/*  åˆå§‹åŒ–rootDirInodeå’Œç”¨æˆ·å½“å‰å·¥ä½œç›®å½•ï¼Œä»¥ä¾¿NameI()æ­£å¸¸å·¥ä½œ */
 	FileManager& fileMgr = Kernel::Instance().GetFileManager();
 
 	//fileMgr.rootDirInode = g_InodeTable.IGet(DeviceManager::ROOTDEV, FileSystem::ROOTINO);
@@ -321,7 +321,7 @@ extern "C" void next()
 	//us.u_cdir = g_InodeTable.IGet(DeviceManager::ROOTDEV, FileSystem::ROOTINO);
 	User_get_cdir()->i_flag &= (~Inode::ILOCK);
 
-	/* ´ò¿ªTTyÉè±¸ */
+	/* æ‰“å¼€TTyè®¾å¤‡ */
 	int fd_tty = lib_open("/dev/tty1", File::FREAD);
 
 	if ( fd_tty != 0 )
@@ -351,23 +351,23 @@ extern "C" void next()
 
     //us.u_MemoryDescriptor.Release();
 
-	int pid = Kernel::Instance().GetProcessManager().NewProc();         /* 0#½ø³Ì´´½¨1#½ø³Ì */
-	if( 0 == pid )     /* 0#½ø³ÌÖ´ĞĞSched()£¬³ÉÎªÏµÍ³ÖĞÓÀÔ¶ÔËĞĞÔÚºËĞÄÌ¬µÄÎ¨Ò»½ø³Ì  */
+	int pid = Kernel::Instance().GetProcessManager().NewProc();         /* 0#è¿›ç¨‹åˆ›å»º1#è¿›ç¨‹ */
+	if( 0 == pid )     /* 0#è¿›ç¨‹æ‰§è¡ŒSched()ï¼Œæˆä¸ºç³»ç»Ÿä¸­æ°¸è¿œè¿è¡Œåœ¨æ ¸å¿ƒæ€çš„å”¯ä¸€è¿›ç¨‹  */
 	{
 		// us.u_procp->p_ttyp = NULL;
 		Kernel::Instance().GetProcessManager().Sched();
 	}
-	else               /* 1#½ø³ÌÖ´ĞĞÓ¦ÓÃ³ÌĞòshell.exe,ÊÇÆÕÍ¨½ø³Ì  */
+	else               /* 1#è¿›ç¨‹æ‰§è¡Œåº”ç”¨ç¨‹åºshell.exe,æ˜¯æ™®é€šè¿›ç¨‹  */
 	{
-		Machine::Instance().InitUserPageTable();      //ÕâÊÇÖ±½ÓĞ´0x202,0x203Ò³±í£¬Ã»Ïà¶ÔĞéÊµµØÖ·Ó³Éä±íÒ»Ñùokay£¡
+		Machine::Instance().InitUserPageTable();      //è¿™æ˜¯ç›´æ¥å†™0x202,0x203é¡µè¡¨ï¼Œæ²¡ç›¸å¯¹è™šå®åœ°å€æ˜ å°„è¡¨ä¸€æ ·okayï¼
 		FlushPageDirectory();
 
 		//CRT::ClearScreen();
         clear_screan();
 
-		/* 1#½ø³Ì»ØÓÃ»§Ì¬£¬Ö´ĞĞexec("shell.exe")ÏµÍ³µ÷ÓÃ*/
+		/* 1#è¿›ç¨‹å›ç”¨æˆ·æ€ï¼Œæ‰§è¡Œexec("shell.exe")ç³»ç»Ÿè°ƒç”¨*/
 		MoveToUserStack();
-		__asm ("call *%%eax" :: "a"((unsigned long)ExecShell - 0xC0000000));   //Òª·ÃÎÊÓÃ»§Õ»£¬ËùÒÔÒ»¶¨ÒªÓĞÓ³Éä£¡
+		__asm ("call *%%eax" :: "a"((unsigned long)ExecShell - 0xC0000000));   //è¦è®¿é—®ç”¨æˆ·æ ˆï¼Œæ‰€ä»¥ä¸€å®šè¦æœ‰æ˜ å°„ï¼
 	}
 }
 
