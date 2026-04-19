@@ -119,7 +119,7 @@ impl FileManager {
         }
 
         if disposition == OpenDisposition::TruncateExisting {
-            inode.lock().i_trunc();
+            inode.lock().release();
         }
 
         inode.lock().prele();

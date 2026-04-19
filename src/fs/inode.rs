@@ -542,10 +542,6 @@ impl Inode {
         global_buffer_manager().bwrite(buf.into_raw()).unwrap();
     }
 
-    pub fn i_trunc(&mut self) {
-        todo!()
-    }
-
     fn release_blk(&self, blk: PhysicalBlock) {
         if blk == PhysicalBlock::ZERO {
             return;

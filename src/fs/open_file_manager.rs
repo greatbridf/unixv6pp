@@ -207,7 +207,7 @@ impl InodeTable {
         inode.i_flag |= InodeFlag::ILOCK;
 
         if inode.i_nlink <= 0 {
-            inode.i_trunc();
+            inode.release();
             inode.i_mode = InodeMode::empty();
             let _ = fs::global_file_system().i_free(inode.i_dev, inode.i_number);
         }
