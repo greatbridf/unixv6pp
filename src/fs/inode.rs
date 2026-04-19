@@ -385,7 +385,7 @@ impl Inode {
         }
     }
 
-    fn get_blk(
+    pub fn get_blk(
         &mut self, LogicalBlock(lbn): LogicalBlock, ra: &mut Option<PhysicalBlock>,
     ) -> Option<Buffer> {
         const LBN_SMALL: u32 = 6;
@@ -586,8 +586,8 @@ impl Inode {
         self.i_flag.remove(InodeFlag::ILOCK);
         if self.i_flag.contains(InodeFlag::IWANT) {
             self.i_flag.remove(InodeFlag::IWANT);
-            wakeup_all(&*self);
         }
+        wakeup_all(&*self);
     }
 
     fn lock_pri(me: &Spin<Self>, pri: u32) -> SpinGuard<'_, Inode, NoContext> {

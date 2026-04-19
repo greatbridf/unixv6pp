@@ -1,9 +1,11 @@
+use core::ffi::CStr;
+
 use alloc::boxed::Box;
 use kernel_macros::define_class_compat;
 
 use crate::{
     constants::{PosixError, SIGMAX},
-    fs::{DirectoryEntry, IOParameter, Inode, OpenFiles},
+    fs::{DirectoryEntry, IOParameter, Inode, InodeRef, InodeRefCompat, OpenFiles, inoderef_leak},
 };
 
 #[derive(Clone, Copy)]
@@ -91,13 +93,13 @@ pub struct Userspace {
     signal_pending: bool,
 
     /// Inode of our working directory
-    cwd: *mut Inode,
+    cwd: Option<InodeRefCompat>,
     // cwd: InodeRef,
     /// Inode of our pwd's parent
-    cwd_parent: *mut Inode,
+    pub cwd_parent: Option<InodeRefCompat>,
     // cwd_parent: InodeRef,
     /// Dentry of our pwd
-    dentry: DirectoryEntry,
+    pub dentry: DirectoryEntry,
 
     /// Last component of pwd
     cwd_name: [u8; 28],
@@ -181,6 +183,24 @@ impl Userspace {
     fn getpwd(&self) -> [u8; 128] {
         self.cwd_full.clone()
     }
+
+    pub fn argdir(&self) -> &[u8] {
+        unsafe {
+            CStr::from_ptr(self.dirp as *const i8).to_bytes()
+        }
+    }
+
+    pub fn argdir_mut(&mut self) -> &mut [u8; 28] {
+        &mut self.cwd_name
+    }
+
+    pub fn getcwd(&self) -> InodeRef {
+        self.cwd.unwrap().own()
+    }
+
+    pub fn set_cwd_parent(&mut self, parent: InodeRef) {
+        self.cwd_parent = Some(inoderef_leak(parent));
+    }
 }
 
 impl MemoryDescriptor {
@@ -260,8 +280,8 @@ define_user_compat! {
     mem: MemoryDescriptor => get_MemoryDescriptor_ := MemoryDescriptor::new();
     ar0: *mut u32 => get_ar0_ := core::ptr::null_mut();
     proc: *mut Process => get_procp_ := core::ptr::null_mut();
-    cwd: *mut Inode => get_cdir_ := core::ptr::null_mut();
-    cwd_parent: *mut Inode => get_pdir_ := core::ptr::null_mut();
+    cwd: Option<InodeRefCompat> => get_cdir_ := None;
+    cwd_parent: Option<InodeRefCompat> => get_pdir_ := None;
     error: Option<PosixError> => get_error_ := None;
     rsav: [Pointer; 2] => get_rsav_ := [Pointer(0); 2];
     ssav: [Pointer; 2] => get_ssav_ := [Pointer(0); 2];

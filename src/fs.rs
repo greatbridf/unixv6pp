@@ -14,10 +14,10 @@ pub(crate) type FileRef = Arc<Spin<File>>;
 pub(crate) type InodeRef = Arc<Spin<Inode>>;
 pub(crate) type SuperBlockRef = Arc<Spin<SuperBlock>>;
 
-pub use file::{File, IOParameter, OpenFiles, InodeRefCompat};
+pub use file::{File, IOParameter, InodeRefCompat, OpenFiles};
 pub use file_manager::DirectoryEntry;
 pub use file_system::SuperBlock;
-pub use inode::Inode;
+pub use inode::{inoderef_leak, Inode};
 
 static GLOBAL_OPENFILE_TABLE: LazyLock<Spin<OpenFileTable>> =
     LazyLock::new(|| Spin::new(OpenFileTable::new()));

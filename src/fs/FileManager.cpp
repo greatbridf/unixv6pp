@@ -3,6 +3,7 @@
 #include "Utility.h"
 #include "TimeInterrupt.h"
 
+#include "Video.h"
 #include "fs_defines.h"
 
 /*==========================class FileManager===============================*/
@@ -588,6 +589,10 @@ Buffer Inode_read_blk(Inode* inode, unsigned long offset) {
 	return Buffer(Kernel::Instance().GetBufferManager().Bread(inode->i_dev, phyblk));
 }
 
+extern "C" bool compat_fm_access(Inode* inode, unsigned int mode) {
+	return Kernel::Instance().GetFileManager().Access(inode, mode);
+}
+
 Inode* search_get_inode(Inode* dir, const char* name, bool create, bool remove) {
 	FileManager& mgr = Kernel::Instance().GetFileManager();
 	unsigned long count = dir->i_size / sizeof(DirectoryEntry);
@@ -665,6 +670,7 @@ Inode* search_get_inode(Inode* dir, const char* name, bool create, bool remove) 
 
 
 	/* 匹配目录项成功，根据匹配成功的目录项m_ino字段获取相应下一级目录或文件的Inode。 */
+        Diagnose::Write("ino: %d\n", User_get_dent().m_ino);
 	ret = InodeTable_get(dir->i_dev, User_get_dent().m_ino);
 
 out:
@@ -673,9 +679,12 @@ out:
 	return ret;
 }
 
+extern "C" Inode* FileManager_namei(FileManager*, FileManager::DirectorySearchMode);
+
 /* 返回NULL表示目录搜索失败，否则是根指针，指向文件的内存打开i节点 ，上锁的内存i节点  */
-Inode* FileManager::NameI(enum DirectorySearchMode mode )
+Inode* FileManager::NameI(FileManager::DirectorySearchMode mode)
 {
+        return FileManager_namei(this, mode);
 	Inode* pInode;
 	Buf* pBuf;
 	char curchar;
