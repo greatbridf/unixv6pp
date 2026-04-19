@@ -234,6 +234,3 @@ impl IOParameter {
         }
     }
 }
-
-define_class_compat! {impl User {
-}}

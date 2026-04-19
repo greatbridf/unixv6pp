@@ -2,7 +2,8 @@ use alloc::boxed::Box;
 use eonix_mm::paging::PAGE_SIZE;
 use kernel_macros::define_class_compat;
 
-use crate::{Ext, compat::{compat_flush_page_directory, compat_inode_read, compat_user_pt}, fs::InodeRefCompat};
+use crate::sync::SpinExt;
+use crate::{Ext, compat::{compat_flush_page_directory, compat_user_pt}, fs::InodeRefCompat};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
@@ -143,7 +144,7 @@ impl PEParser {
                 )
             };
 
-            compat_inode_read(inode, dst, section.raw_data_addr);
+            inode.lock().read(dst, section.raw_data_addr);
         }
 
         if !shared_text {
@@ -158,11 +159,11 @@ impl PEParser {
     pub fn load(&mut self, inode: InodeRefCompat) -> bool {
         let mut offset = 0;
         let mut dos_header = DOSHeader::default();
-        compat_inode_read(inode, dos_header.as_buffer(), offset);
+        inode.lock().read(dos_header.as_buffer(), offset);
 
         offset += dos_header.new_header_addr;
         let mut nt_header: Box<NTHeader> = Box::default();
-        compat_inode_read(inode, nt_header.as_buffer(), offset);
+        inode.lock().read(nt_header.as_buffer(), offset);
 
         const NT_SIG: usize = 0x4550;
         if nt_header.sig != NT_SIG {
@@ -174,7 +175,7 @@ impl PEParser {
         let mut section_headers: Box<[SectionHeader]> = unsafe {
             Box::new_uninit_slice(section_count).assume_init()
         };
-        compat_inode_read(inode, section_headers.as_buffer(), offset);
+        inode.lock().read(section_headers.as_buffer(), offset);
 
         let OptionalHeader32 {
             image_base, code_base, data_base, data_dir, stack_size,
