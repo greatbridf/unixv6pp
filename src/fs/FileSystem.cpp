@@ -8,6 +8,8 @@
 #include "fs_defines.h"
 
 extern "C" bool FileSystem_load_super_block(Mount*, SuperBlock*);
+extern "C" SuperBlock* FileSystem_get_fs(Mount*, short);
+extern "C" void FileSystem_update(Mount*, int*);
 
 /*==============================class SuperBlock===================================*/
 /* 系统全局超级块SuperBlock对象 */
@@ -68,23 +70,9 @@ void FileSystem::LoadSuperBlock()
 
 SuperBlock* FileSystem::GetFS(short dev)
 {
-	SuperBlock* sb;
-
-	/* 遍历系统装配块表，寻找设备号为dev的设备中文件系统的SuperBlock */
-	for(int i = 0; i < FileSystem::NMOUNT; i++)
-	{
-		if(this->m_Mount[i].m_spb != NULL && this->m_Mount[i].m_dev == dev)
-		{
-			/* 获取SuperBlock的地址 */
-			sb = this->m_Mount[i].m_spb;
-			if(sb->s_nfree > 100 || sb->s_ninode > 100)
-			{
-				sb->s_nfree = 0;
-				sb->s_ninode = 0;
-			}
-			return sb;
-		}
-	}
+	SuperBlock* sb = FileSystem_get_fs(&this->m_Mount[0], dev);
+	if(sb != NULL)
+		return sb;
 
 	Utility::Panic("No File System!");
 	return NULL;
@@ -92,66 +80,7 @@ SuperBlock* FileSystem::GetFS(short dev)
 
 void FileSystem::Update()
 {
-	int i;
-	SuperBlock* sb;
-	Buf* pBuf;
-
-	/* 另一进程正在进行同步，则直接返回 */
-	if(this->updlock)
-	{
-		return;
-	}
-
-	/* 设置Update()函数的互斥锁，防止其它进程重入 */
-	this->updlock++;
-
-	/* 同步SuperBlock到磁盘 */
-	for(i = 0; i < FileSystem::NMOUNT; i++)
-	{
-		if(this->m_Mount[i].m_spb != NULL)	/* 该Mount装配块对应某个文件系统 */
-		{
-			sb = this->m_Mount[i].m_spb;
-
-			/* 如果该SuperBlock内存副本没有被修改，直接管理inode和空闲盘块被上锁或该文件系统是只读文件系统 */
-			if(sb->s_fmod == 0 || sb->s_ilock != 0 || sb->s_flock != 0 || sb->s_ronly != 0)
-			{
-				continue;
-			}
-
-			/* 清SuperBlock修改标志 */
-			sb->s_fmod = 0;
-			/* 写入SuperBlock最后存访时间 */
-			sb->s_time = Time::time;
-
-			/*
-			 * 为将要写回到磁盘上去的SuperBlock申请一块缓存，由于缓存块大小为512字节，
-			 * SuperBlock大小为1024字节，占据2个连续的扇区，所以需要2次写入操作。
-			 */
-			for(int j = 0; j < 2; j++)
-			{
-				/* 第一次p指向SuperBlock的第0字节，第二次p指向第512字节 */
-				int* p = (int *)sb + j * 128;
-
-				/* 将要写入到设备dev上的SUPER_BLOCK_SECTOR_NUMBER + j扇区中去 */
-				pBuf = this->m_BufferManager->GetBlk(this->m_Mount[i].m_dev, fs::SUPERBLOCK_SECTOR_OFF + j);
-
-				/* 将SuperBlock中第0 - 511字节写入缓存区 */
-				Utility::DWordCopy(p, (int *)pBuf->b_addr, 128);
-
-				/* 将缓冲区中的数据写到磁盘上 */
-				this->m_BufferManager->Bwrite(pBuf);
-			}
-		}
-	}
-
-	/* 同步修改过的内存Inode到对应外存Inode */
-        InodeTable_update();
-
-	/* 清除Update()函数锁 */
-	this->updlock = 0;
-
-	/* 将延迟写的缓存块写到磁盘上 */
-	this->m_BufferManager->Bflush(DeviceManager::NODEV);
+	FileSystem_update(&this->m_Mount[0], &this->updlock);
 }
 
 Inode* FileSystem::IAlloc(short dev)

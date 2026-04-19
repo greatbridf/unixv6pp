@@ -73,7 +73,7 @@ pub struct CppSuperBlock {
 pub struct CppMount {
     m_dev: i16,
     m_spb: *mut CppSuperBlock,
-    m_inodep: InodeRefCompat,
+    m_inodep: Option<InodeRefCompat>,
 }
 
 impl SuperBlock {
@@ -134,6 +134,23 @@ impl SuperBlock {
             s_flag: flag,
             s_time: time,
             padding: [0; 50],
+        }
+    }
+
+    fn to_cpp(&self) -> CppSuperBlock {
+        CppSuperBlock {
+            s_isize: self.s_isize,
+            s_fsize: self.s_fsize,
+            s_nfree: self.s_nfree,
+            s_free: self.s_free,
+            s_ninode: self.s_ninode,
+            s_inode: self.s_inode,
+            s_flock: self.s_flag.contains(SuperBlockFlag::S_FLOCK) as i32,
+            s_ilock: self.s_flag.contains(SuperBlockFlag::S_ILOCK) as i32,
+            s_fmod: self.s_flag.contains(SuperBlockFlag::S_FMOD) as i32,
+            s_ronly: self.s_flag.contains(SuperBlockFlag::S_RONLY) as i32,
+            s_time: self.s_time,
+            padding: [0; 47],
         }
     }
 }
@@ -210,6 +227,33 @@ impl FileSystem {
         Ok(unsafe { super_block.assume_init() })
     }
 
+    fn write_super_block(dev: DevId, super_block: &CppSuperBlock) -> Result<(), FileSystemError> {
+        let super_block_ptr = super_block as *const CppSuperBlock as *const u8;
+
+        for i in 0..2 {
+            let buf = global_buffer_manager()
+                .get_blk(
+                    dev,
+                    PhysicalBlock((Self::SUPER_BLOCK_SECTOR_NUMBER + i) as u32),
+                )
+                .map_err(|_| FileSystemError::BufferUnavailable)?;
+
+            unsafe {
+                ptr::copy_nonoverlapping(
+                    super_block_ptr.add(i * Buf::BLOCK_SIZE),
+                    (*buf).as_slice_mut().as_mut_ptr(),
+                    Buf::BLOCK_SIZE,
+                );
+            }
+
+            global_buffer_manager()
+                .bwrite(buf)
+                .map_err(|_| FileSystemError::BufferUnavailable)?;
+        }
+
+        Ok(())
+    }
+
     pub fn new() -> Self {
         Self {
             m_mount: array::from_fn(|_| Mount::new()),
@@ -252,6 +296,7 @@ impl FileSystem {
         }
 
         self.updlock = true;
+        let time = compat_get_time() as i32;
 
         for mount in &self.m_mount {
             let Some(spb) = mount.m_spb.as_ref() else {
@@ -270,23 +315,17 @@ impl FileSystem {
             {
                 let mut sb = spb.lock();
                 sb.s_flag.remove(SuperBlockFlag::S_FMOD);
-                sb.s_time = 0;
+                sb.s_time = time;
             }
 
-            // TODO: buffer manager
-            // for j in 0..2 {
-            //     let buf = buffer_manager.get_blk(mount.m_dev, Self::SUPER_BLOCK_SECTOR_NUMBER + j);
-            //     copy
-            //     buffer_manager.bwrite(buf);
-            // }
+            let _ = Self::write_super_block(mount.m_dev, &spb.lock().to_cpp());
         }
 
         fs::global_inode_table().update_inode_table();
 
         self.updlock = false;
 
-        // TODO: buffer manager
-        // buffer_manager.bflush(NODEV);
+        let _ = global_buffer_manager().bflush(None);
     }
 
     pub fn i_alloc(&mut self, dev: DevId) -> Result<InodeRef, FileSystemError> {
@@ -491,5 +530,69 @@ define_class_compat! {impl FileSystem {
         }
 
         true
+    }
+
+    pub fn get_fs(mount: *mut CppMount, dev: DevId) -> *mut CppSuperBlock {
+        if mount.is_null() {
+            return ptr::null_mut();
+        }
+
+        for i in 0..FileSystem::NMOUNT {
+            let mount = unsafe { &mut *mount.add(i) };
+            if mount.m_spb.is_null() || mount.m_dev != dev.0 {
+                continue;
+            }
+
+            let spb = unsafe { &mut *mount.m_spb };
+            if spb.s_nfree > 100 || spb.s_ninode > 100 {
+                spb.s_nfree = 0;
+                spb.s_ninode = 0;
+            }
+
+            return mount.m_spb;
+        }
+
+        ptr::null_mut()
+    }
+
+    pub fn update(mount: *mut CppMount, updlock: *mut i32) {
+        if mount.is_null() || updlock.is_null() {
+            return;
+        }
+
+        unsafe {
+            if *updlock != 0 {
+                return;
+            }
+
+            *updlock += 1;
+        }
+
+        let time = compat_get_time() as i32;
+
+        for i in 0..FileSystem::NMOUNT {
+            let mount = unsafe { &mut *mount.add(i) };
+            if mount.m_spb.is_null() {
+                continue;
+            }
+
+            let spb = unsafe { &mut *mount.m_spb };
+            if spb.s_fmod == 0 || spb.s_ilock != 0 || spb.s_flock != 0 || spb.s_ronly != 0 {
+                continue;
+            }
+
+            spb.s_fmod = 0;
+            spb.s_time = time;
+
+            let _ = FileSystem::write_super_block(DevId(mount.m_dev), spb);
+        }
+
+        fs::global_inode_table().update_inode_table();
+
+        unsafe {
+            *updlock = 0;
+        }
+
+        let _ = global_buffer_manager().bflush(None);
     }
 }}
