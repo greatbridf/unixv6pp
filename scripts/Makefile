@@ -128,7 +128,7 @@ clean: $(addsuffix .clean,\
 		$(foreach lib,$(out-libnames),$($(lib)-objs)) \
 		$(out-bins) $(out-host-bins) $(out-libnames) \
 		objs.a $(objs) host-objs.a $(host-objs) \
-		$(wildcard *.cmd .*.cmd) collect-commands.cmd \
+		$(wildcard **/*.cmd **/.*.cmd) collect-commands.cmd \
 	) custom-clean
 
 .PHONY: all
